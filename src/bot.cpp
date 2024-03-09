@@ -1,12 +1,6 @@
 #include "bot.h"
-#include <boost/asio/buffer.hpp>
-#include <cstdint>
 #include <cstdio>
-#include <mutex>
-#include <string>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <zlib.h>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -15,8 +9,8 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
     uuid = _uuid;
     protocol = _protocol;
 
-    boost::asio::ip::address addr = boost::asio::ip::address::from_string(_addr);
-    socket.connect(boost::asio::ip::tcp::endpoint(addr, port));
+    boost::asio::ip::address address = boost::asio::ip::address::from_string(addr);
+    socket.connect(boost::asio::ip::tcp::endpoint(address, port));
 
     loginPacket();
 
@@ -108,6 +102,18 @@ void Bot::send() {
     mtxSocket.unlock();
 }
 
+void Bot::uncompressPacket(void) {
+    long unsigned int uncompressed_len = decodeVarInt();
+    std::vector<uint8_t> uncompressed(uncompressed_len);
+
+    long unsigned int readBuff_len = readBuff.size();
+
+    uncompress(uncompressed.data(), &uncompressed_len, readBuff.data(), readBuff_len);
+
+    readBuff.clear();
+    readBuff = uncompressed;
+}
+
 void Bot::loginPacket(void) {
 
     pushVarInt(0x00); // propio del protocolo
@@ -125,27 +131,30 @@ void Bot::loginPacket(void) {
 
     send(); // mando el paquete
 
-    printf("send login paquet\n");
+    printf(INFO "send login paquet" RESET);
 }
 
 void Bot::handler(void) {
-    printf("thread init\n");
+    printf(INFO "thread init" RESET);
     // funca? //tute del futuro, si?????????????? , si. increible.
     while(!th_stop) {
         if(read()) {
             uint16_t len = decodeVarInt();
 
-            if(len < compression_threshold) {
-                switch(status) {
-                    case login: loginHandler(); break;
-                    case config: configHandler(); break;
-                    case play: playHandler(); break;
-                }
-            } else
-                printf("error compression_threshold len = %d\n", len);
+            if(len > compression_threshold) {
+                printf(INFO "uncompressPacket len = %d" RESET, len);
+                uncompressPacket();
+            }
+
+            switch(status) {
+                case login: loginHandler(); break;
+                case config: configHandler(); break;
+                case play: playHandler(); break;
+            }
         }
     }
 }
+
 
 void Bot::loginHandler(void) {
     uint16_t id = decodeVarInt();
@@ -155,21 +164,22 @@ void Bot::loginHandler(void) {
                 pushVarInt(0x00);
                 sendBuff.push_back(0x03);
 
-                printf("login successfully\n");
+                printf(INFO "login successfully" RESET);
 
                 send();
                 status = config;
             }
 
             break;
-        case 0x03:
+
+        case 0x03: // compression packet
             compression_threshold = decodeVarInt();
 
-            printf("compression_threshold = %d \n", compression_threshold);
+            printf(INFO "compression_threshold = %d" RESET, compression_threshold);
             break;
 
         default:
-            printf("id = 0x%02X\n", id);
+            printf(ERROR "login-id = 0x%02X" RESET, id);
 
             for(unsigned char c : readBuff) printf("0x%02X ", c);
             printf("\n");
@@ -179,7 +189,21 @@ void Bot::loginHandler(void) {
 }
 
 void Bot::configHandler(void) {
-    printf("configHandler \n");
+    uint16_t id = decodeVarInt();
+    switch(id) {
+        default:
+            printf(DEBUG "config-id = 0x%02X\n", id);
+
+            printf(PACKET "HEX: ");
+            for(unsigned char c : readBuff) printf("0x%02X ", c);
+            printf(RESET);
+
+            // printf(PACKET "ASCI: ");
+            // for(unsigned char c : readBuff) printf("%c", c);
+            // printf(RESET);
+
+            break;
+    }
 }
 
 void Bot::playHandler(void) {

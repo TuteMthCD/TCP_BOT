@@ -7,6 +7,7 @@ project(tcp)
 add_executable(main src/main.cpp src/bot.cpp)
 include_directories(src)
 #target_link_libraries(main m)
+target_link_libraries(main z)
 
 add_custom_target(tcp ALL
     DEPENDS main
