@@ -1,31 +1,60 @@
 #include <boost/asio.hpp>
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <cstdint>
+#include <mutex>
+#include <sys/socket.h>
+#include <thread>
 
 // using namespace boost::asio;
 
 class Bot {
     public:
-    Bot(std::string addr, unsigned short port, std::string name, std::string uuid, int protocol);
-        
+    Bot(boost::asio::io_context& io) : socket(io){};
+    void init(std::string addr, unsigned short port, std::string name, std::string uuid, int protocol);
+
     private:
+    //create buff;
     void pushVarInt(short);
-    void read(void);
+    void pushString(std::string);
+    void pushUShort(unsigned short);
+    void pushUUID(void);
+
+    //decode buff; 
+    uint16_t decodeVarInt(void);
+    
+    //handlers
+    bool read(void);
     void send(void);
 
-    void loginPacket();
-    //basicas
+    void handler(void);
+    
+    void loginHandler(void);
+    void configHandler(void);
+    void playHandler(void);
+    
+    void loginPacket(void);
+    // basicas
     std::string addr;
     unsigned int port;
     std::string name;
     std::string uuid;
     int protocol;
+    // buffer necesesario para recibir
+    std::vector<uint8_t> sendBuff;
+    std::vector<uint8_t> readBuff;
 
-    //buffer necesesario para recibir
-    std::vector<uint8_t>buff;
-
-    //socket tcp
+    // socket tcp
     boost::asio::ip::tcp::socket socket;
-    boost::asio::io_context io;
+    std::thread thread;
+    bool th_stop = false;
+    std::mutex mtxSocket;
+
+    // otras
+    enum{
+        login,
+        config,
+        play,
+    }status = login;
+
+    uint16_t compression_threshold = 256; // 256 is default.
 };
