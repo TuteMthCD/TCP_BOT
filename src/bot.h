@@ -1,7 +1,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <cstdint>
 #include <zlib.h>
 
 #define ERROR "\033[1;31m[E]-> " // Red
@@ -21,6 +20,11 @@ class Bot {
         io = &_io;
     };
     void init(std::string addr, unsigned short port, std::string name, std::string uuid, int protocol);
+
+    struct {
+        long worldAge = 0;
+        long timeDay = 0;
+    } tickTime;
 
     private:
     // create buff;
