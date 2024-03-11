@@ -1,4 +1,5 @@
 #include "bot.h"
+#include <thread>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -7,14 +8,20 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
     uuid = _uuid;
     protocol = _protocol;
 
+    th = std::thread(&Bot::run, this);
+}
+void Bot::run(void) {
     using namespace boost::asio;
-
+    
     ip::address address = ip::address::from_string(addr);
     socket.connect(ip::tcp::endpoint(address, port));
 
     loginPacket();
 
+    printf(DEBUG "HOLAAA" RESET);
+
     io->run(); // run async_readsssss // esto me tuvo como 17 hras
+    printf(DEBUG "HOLAAA2" RESET);
 }
 
 void Bot::pushVarInt(short shortValue) {

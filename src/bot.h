@@ -40,6 +40,8 @@ class Bot {
     void send(void);
     void read(void);
 
+
+    void run(void);
     void handler(const boost::system::error_code& err, std::size_t bytes_transferred);
 
     void loginHandler(void);
@@ -63,6 +65,7 @@ class Bot {
     // socket tcp
     boost::asio::ip::tcp::socket socket;
     boost::asio::io_context* io;
+    std::thread th;
     // otras
     enum {
         login,
