@@ -9,13 +9,14 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
     uuid = _uuid;
     protocol = _protocol;
 
-    boost::asio::ip::address address = boost::asio::ip::address::from_string(addr);
-    socket.connect(boost::asio::ip::tcp::endpoint(address, port));
+    using namespace boost::asio;
+
+    ip::address address = ip::address::from_string(addr);
+    socket.connect(ip::tcp::endpoint(address, port));
 
     loginPacket();
 
-    handler();
-    // thread = std::thread(&Bot::handler, this);
+    io->run(); // run async_readsssss // esto me tuvo como 17 hras
 }
 
 void Bot::pushVarInt(short shortValue) {
@@ -47,9 +48,9 @@ void Bot::pushUUID() {
     }
 }
 
-uint16_t Bot::decodeVarInt(void) {
+uint32_t Bot::decodeVarInt(void) {
     uint8_t shift = 0;
-    uint16_t value = 0;
+    uint32_t value = 0;
 
     uint8_t buffByte = 0;
 
@@ -64,51 +65,40 @@ uint16_t Bot::decodeVarInt(void) {
     return value;
 }
 
-bool Bot::read(void) {
-
-    mtxSocket.lock();
-
-    uint16_t length_buffer = socket.available();
-
-    // Read the rest based on the determined length
-    if(length_buffer) {
-
-        readBuff.clear();
-        readBuff.resize(length_buffer);
-
-        boost::asio::read(socket, boost::asio::buffer(readBuff));
-
-        // for(unsigned char c : buff) printf("0x%02X ", c);
-        // printf("\n");
-
-        mtxSocket.unlock();
-
-        return true;
-    }
-
-    mtxSocket.unlock();
-
-    return false;
-}
-
 void Bot::send() {
-
-    mtxSocket.lock();
-
     sendBuff.insert(sendBuff.begin(), sendBuff.size());
     write(socket, boost::asio::buffer(sendBuff));
     sendBuff.clear();
+}
 
-    mtxSocket.unlock();
+void Bot::read(void) {
+    packetLen = 0;
+    socket.async_read_some(
+    boost::asio::buffer(&packetLen, 1), std::bind(&Bot::handler, this, std::placeholders::_1, std::placeholders::_2));
+}
+
+void Bot::decodePacketLength(void) {
+    uint32_t value = 0;
+    uint8_t shift = 0;
+
+    uint8_t buffByte = 0;
+    do {
+        buffByte = packetLen;
+        value |= (buffByte & 0x7F) << shift;
+        shift += 7;
+
+        if((buffByte & 0x80) != 0)socket.read_some(boost::asio::buffer(&packetLen, 1));
+
+    } while((buffByte & 0x80) != 0);
+
+    packetLen = value;
 }
 
 void Bot::uncompressPacket(void) {
-    long unsigned int uncompressed_len = decodeVarInt();
-    std::vector<uint8_t> uncompressed(uncompressed_len);
+    long unsigned int uncompressedLen = decodeVarInt();
+    std::vector<uint8_t> uncompressed(uncompressedLen);
 
-    long unsigned int readBuff_len = readBuff.size();
-
-    uncompress(uncompressed.data(), &uncompressed_len, readBuff.data(), readBuff_len);
+    uncompress(uncompressed.data(), &uncompressedLen, readBuff.data(), packetLen);
 
     readBuff.clear();
     readBuff = uncompressed;
@@ -132,80 +122,95 @@ void Bot::loginPacket(void) {
     send(); // mando el paquete
 
     printf(INFO "send login paquet" RESET);
+
+    // comienzo a escuchar
+    read();
 }
 
-void Bot::handler(void) {
-    printf(INFO "thread init" RESET);
-    // funca? //tute del futuro, si?????????????? , si. increible.
-    while(!th_stop) {
-        if(read()) {
-            uint16_t len = decodeVarInt();
+void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
-            if(len > compression_threshold) {
-                printf(INFO "uncompressPacket len = %d" RESET, len);
-                uncompressPacket();
-            }
-
-            switch(status) {
-                case login: loginHandler(); break;
-                case config: configHandler(); break;
-                case play: playHandler(); break;
-            }
-        }
+    if(_err) {
+        printf(ERROR "ERROR EN EL PAQUETE -> %s" RESET, _err.message().c_str());
+        return;
     }
+
+    // por si viene un VarInt
+    if((packetLen & 0x80) != 0) decodePacketLength();
+    
+    readBuff.resize(packetLen);
+    socket.read_some(boost::asio::buffer(readBuff));
+
+
+    // funca? //tute del futuro, si?????????????? , si. increible.
+
+    if(packetLen > compression_threshold) { uncompressPacket(); }
+
+    packetID = decodeVarInt();
+    id = decodeVarInt();
+
+    printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, status,
+    packetID, id, packetLen, packetLen,readBuff.size());
+
+    switch(status) {
+        case login: loginHandler(); break;
+        case config: configHandler(); break;
+        case play: playHandler(); break;
+    }
+
+    read();
 }
 
 
 void Bot::loginHandler(void) {
-    uint16_t id = decodeVarInt();
-    switch(id) {
+    switch(packetID) {
         case 0x00:
-            if(decodeVarInt() == 0x02) {
+            if(id == 0x02) {
                 pushVarInt(0x00);
                 sendBuff.push_back(0x03);
 
-                printf(INFO "login successfully" RESET);
-
                 send();
+
                 status = config;
+                printf(INFO "login successfully" RESET);
             }
 
             break;
 
         case 0x03: // compression packet
-            compression_threshold = decodeVarInt();
+            compression_threshold = id;
 
             printf(INFO "compression_threshold = %d" RESET, compression_threshold);
             break;
 
-        default:
-            printf(ERROR "login-id = 0x%02X" RESET, id);
-
-            for(unsigned char c : readBuff) printf("0x%02X ", c);
-            printf("\n");
-
-            break;
+        default: break;
     }
 }
 
 void Bot::configHandler(void) {
-    uint16_t id = decodeVarInt();
-    switch(id) {
-        default:
-            printf(DEBUG "config-id = 0x%02X\n", id);
+    printf(DEBUG "configHandler" RESET);
 
-            printf(PACKET "HEX: ");
-            for(unsigned char c : readBuff) printf("0x%02X ", c);
-            printf(RESET);
+    if(packetID == 0x00 && id == 0x02) {
+        pushVarInt(0x00);
+        pushVarInt(0x02);
+        send();
 
-            // printf(PACKET "ASCI: ");
-            // for(unsigned char c : readBuff) printf("%c", c);
-            // printf(RESET);
-
-            break;
+        status = play;
+        printf(INFO "config finished" RESET);
     }
 }
 
 void Bot::playHandler(void) {
-    printf("playHandler \n");
+    if(packetID == 0x00 && id == 0x24) {
+        pushVarInt(0x00);
+        pushVarInt(0x15);
+        sendBuff.insert(sendBuff.end(), readBuff.begin(), readBuff.end());
+
+        // printf(DEBUG "BUFFER :" RESET);
+
+        // for(uint8_t c : sendBuff) { printf(DEBUG "0x%02X" RESET, c); }
+
+        send();
+
+        printf(INFO "keep alive" RESET);
+    }
 }
