@@ -4,8 +4,13 @@ set(CMAKE_BUILD_TYPE Debug)
 
 project(tcp)
 
-add_executable(main src/main.cpp src/bot.cpp)
-include_directories(src)
+set(SOURCES
+    src/main.cpp
+    src/include/bot.cpp
+)
+
+add_executable(main ${SOURCES})
+include_directories(src/include)
 #target_link_libraries(main m)
 target_link_libraries(main z)
 
