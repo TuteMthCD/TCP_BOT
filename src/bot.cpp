@@ -1,4 +1,7 @@
 #include "bot.h"
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <thread>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
@@ -12,7 +15,7 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
 }
 void Bot::run(void) {
     using namespace boost::asio;
-    
+
     ip::address address = ip::address::from_string(addr);
     socket.connect(ip::tcp::endpoint(address, port));
 
@@ -232,11 +235,8 @@ void Bot::playHandler(void) {
                 pushVarInt(0x00);
                 pushVarInt(0x15);
                 sendBuff.insert(sendBuff.end(), readBuff.begin(), readBuff.end());
-
                 send();
-
-                printf(INFO "keep alive" RESET);
-
+                // printf(INFO "keep alive" RESET);
                 break;
             case 0x62: // ticktime
 
@@ -261,8 +261,21 @@ void Bot::playHandler(void) {
 
             case 0x19: printf(DEBUG "Damage event" RESET); break; // damage event.
             case 0x22: printf(DEBUG "Hurt (auch)" RESET); break;  // hurt animation. (auch)
-            case 0x5B: printf(DEBUG "Set healt" RESET); break;    // set healt
-            case 0x5A: printf(DEBUG "Set xp" RESET); break;       // set xp
+            case 0x5B:
+
+                std::reverse(readBuff.begin(), readBuff.end());                    // doy vuelta la pila, importarnte.
+                std::memcpy(&player.healt, readBuff.data(), sizeof(player.healt)); // copio vector a stuct
+                printf(INFO "hp = %f, food = %d, foodSat = %f" RESET, player.healt.hp, player.healt.food, player.healt.foodSat);
+
+                if(player.healt.hp <= 0) { // auto-revive
+                    pushVarInt(0x00);
+                    pushVarInt(0x08);
+                    pushVarInt(0x00);
+                    send();
+                }
+
+                break;                                      // set healt
+            case 0x5A: printf(DEBUG "Set xp" RESET); break; // set xp
 
             case 0x38:
                 printf(INFO "END COMBAT" RESET);
