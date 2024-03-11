@@ -22,9 +22,19 @@ class Bot {
     void init(std::string addr, unsigned short port, std::string name, std::string uuid, int protocol);
 
     struct {
-        long worldAge = 0;
         long timeDay = 0;
+        long worldAge = 0;
     } tickTime;
+
+    struct {
+#pragma pack(push, 1) // para crear un struct de 9 bytes
+        struct {
+            float foodSat;
+            uint8_t food;
+            float hp;
+        } healt;
+#pragma pack(pop)
+    } player;
 
     private:
     // create buff;
@@ -76,14 +86,4 @@ class Bot {
     uint32_t packetID;
     uint32_t id;
     uint32_t compression_threshold = 256; // 256 is default.
-
-    struct {
-#pragma pack(push, 1) // para crear un struct de 9 bytes
-        struct {
-            float foodSat;
-            uint8_t food;
-            float hp;
-        } healt;
-#pragma pack(pop)
-    } player;
 };
