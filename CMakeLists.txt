@@ -7,6 +7,7 @@ project(tcp)
 set(SOURCES
     src/main.cpp
     src/include/bot.cpp
+    src/include/varTypes.cpp
 )
 
 add_executable(main ${SOURCES})

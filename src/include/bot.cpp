@@ -1,8 +1,4 @@
 #include "bot.h"
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <thread>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -27,51 +23,6 @@ void Bot::run(void) {
     printf(DEBUG "HOLAAA2" RESET);
 }
 
-void Bot::pushVarInt(short shortValue) {
-    do {
-        char byte = shortValue & 0x7F; // Obtener los 7 bits menos significativos
-        shortValue >>= 7;              // Desplazar los bits restantes
-        if(shortValue != 0) {          // Si quedan más bytes por codificar
-            byte |= 0x80;              // Establecer el bit más significativo a 1 para indicar más bytes
-        }
-        sendBuff.push_back(byte); // Agregar el byte al vector
-    } while(shortValue != 0);
-}
-
-void Bot::pushString(std::string str) {
-    sendBuff.push_back(str.size());
-    for(char c : str) sendBuff.push_back(c);
-}
-
-void Bot::pushUShort(unsigned short us) {
-    sendBuff.push_back(us >> 8);
-    sendBuff.push_back(us);
-}
-
-void Bot::pushUUID() {
-    for(size_t i = 0; i < uuid.size(); i += 2) {
-        std::string byteString = uuid.substr(i, 2);
-        unsigned char byte = static_cast<unsigned char>(std::stoi(byteString, nullptr, 16));
-        sendBuff.push_back(byte);
-    }
-}
-
-uint32_t Bot::decodeVarInt(void) {
-    uint8_t shift = 0;
-    uint32_t value = 0;
-
-    uint8_t buffByte = 0;
-
-    do {
-        buffByte = readBuff[0];
-        value |= (buffByte & 0x7F) << shift;
-        shift += 7;
-
-        if(!readBuff.empty()) readBuff.erase(readBuff.begin());
-    } while((buffByte & 0x80) != 0);
-
-    return value;
-}
 
 void Bot::send() {
     sendBuff.insert(sendBuff.begin(), sendBuff.size());
@@ -103,7 +54,7 @@ void Bot::decodePacketLength(void) {
 }
 
 void Bot::uncompressPacket(void) {
-    long unsigned int uncompressedLen = decodeVarInt();
+    long unsigned int uncompressedLen = packet::decodeVarInt(readBuff);
     std::vector<uint8_t> uncompressed(uncompressedLen);
 
     uncompress(uncompressed.data(), &uncompressedLen, readBuff.data(), packetLen);
@@ -114,18 +65,18 @@ void Bot::uncompressPacket(void) {
 
 void Bot::loginPacket(void) {
 
-    pushVarInt(0x00); // propio del protocolo
-    pushVarInt(protocol);
-    pushString(addr);
-    pushUShort(port);
-    sendBuff.push_back(0x02); // propio del protocolo
+    packet::pushVarInt(sendBuff, 0x00); // propio del protocolo
+    packet::pushVarInt(sendBuff, protocol);
+    packet::pushString(sendBuff, addr);
+    packet::pushUShort(sendBuff, port);
+    packet::pushByte(sendBuff, 0x02); // propio del protocolo
 
     send(); // mando el paquete;
 
     // segundo paquete
-    pushVarInt(0x00); // propio del protocolo
-    pushString(name);
-    pushUUID();
+    packet::pushVarInt(sendBuff, 0x00); // propio del protocolo
+    packet::pushString(sendBuff, name);
+    packet::pushStrUUID(sendBuff, uuid);
 
     send(); // mando el paquete
 
@@ -153,8 +104,8 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
     if(packetLen > compression_threshold) { uncompressPacket(); }
 
-    packetID = decodeVarInt();
-    id = decodeVarInt();
+    packetID = packet::decodeVarInt(readBuff);
+    id = packet::decodeVarInt(readBuff);
 
     // printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET,
     // status, packetID, id, packetLen, packetLen, readBuff.size());
@@ -173,8 +124,8 @@ void Bot::loginHandler(void) {
     switch(packetID) {
         case 0x00:
             if(id == 0x02) {
-                pushVarInt(0x00);
-                sendBuff.push_back(0x03);
+                packet::pushVarInt(sendBuff, 0x00);
+                packet::pushByte(sendBuff, 0x03);
 
                 send();
 
@@ -200,8 +151,8 @@ void Bot::configHandler(void) {
     if(packetID == 0x00 && id == 0x02) {
 
         // ack config
-        pushVarInt(0x00);
-        pushVarInt(0x02);
+        packet::pushVarInt(sendBuff, 0x00);
+        packet::pushVarInt(sendBuff, 0x02);
         send();
 
         status = play;
@@ -209,18 +160,18 @@ void Bot::configHandler(void) {
     }
     if(packetID == 0x00 && id != 0x02) {
         // conf packet
-        pushVarInt(0x00);
-        pushVarInt(0x00);
+        packet::pushVarInt(sendBuff, 0x00);
+        packet::pushVarInt(sendBuff, 0x00);
 
-        pushString("es");         // idioma
-        sendBuff.push_back(0x07); // render distance
-        pushVarInt(0x00);         // chat mode
-        sendBuff.push_back(0x01); // chat colors???
-        sendBuff.push_back(0x7F); // skinsparts
-        pushVarInt(0x01);         // main hand -> right
-        sendBuff.push_back(0x00); // text filter
+        packet::pushString(sendBuff, "es"); // idioma
+        packet::pushByte(sendBuff, 0x02);   // render distance
+        packet::pushVarInt(sendBuff, 0x00); // chat mode
+        packet::pushByte(sendBuff, 0x01);   // chat colors???
+        packet::pushByte(sendBuff, 0x7F);   // skinsparts
+        packet::pushVarInt(sendBuff, 0x01); // main hand -> right
+        packet::pushByte(sendBuff, 0x00);   // text filter
 
-        sendBuff.push_back(0x01); // modo normal
+        packet::pushByte(sendBuff, 0x01); // modo normal
         // sendBuff.push_back(0x00); //modo fantasma
 
         send();
@@ -232,8 +183,8 @@ void Bot::playHandler(void) {
     if(packetID == 0x00) {
         switch(id) {
             case 0x24: // keep alive;
-                pushVarInt(0x00);
-                pushVarInt(0x15);
+                packet::pushVarInt(sendBuff,0x00);
+                packet::pushVarInt(sendBuff,0x15);
                 sendBuff.insert(sendBuff.end(), readBuff.begin(), readBuff.end());
                 send();
                 // printf(INFO "keep alive" RESET);
@@ -254,6 +205,7 @@ void Bot::playHandler(void) {
             case 0x36: printf(DEBUG "Player habilities" RESET); break;  // player habilities.
             case 0x51: printf(DEBUG "Player slot" RESET); break;        // slot selected.
             case 0x3F: printf(DEBUG "Player recipe book" RESET); break; // recipe book.
+            case 0x73: printf(DEBUG "Update recipes" RESET); break;     // recipes update
             case 0x13: printf(DEBUG "Player inventory" RESET); break;   // inventory container content.
             case 0x3E: printf(DEBUG "Player position" RESET); break;    // player position.
 
@@ -268,9 +220,9 @@ void Bot::playHandler(void) {
                 printf(INFO "hp = %f, food = %d, foodSat = %f" RESET, player.healt.hp, player.healt.food, player.healt.foodSat);
 
                 if(player.healt.hp <= 0) { // auto-revive
-                    pushVarInt(0x00);
-                    pushVarInt(0x08);
-                    pushVarInt(0x00);
+                    packet::pushVarInt(sendBuff,0x00);
+                    packet::pushVarInt(sendBuff,0x08);
+                    packet::pushVarInt(sendBuff,0x00);
                     send();
                 }
 
@@ -315,5 +267,7 @@ void Bot::playHandler(void) {
 
             default: printf(DEBUG "id = 0x%02X, packetLen = 0x%02X -> %d" RESET, id, packetLen, packetLen); break;
         }
-    }
+    } else
+        printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET,
+        status, packetID, id, packetLen, packetLen, readBuff.size());
 }

@@ -3,6 +3,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <zlib.h>
 
+#include "varTypes.h"
+
 #define ERROR "\033[1;31m[E]-> " // Red
 #define INFO "\033[1;32m[I]-> "
 #define DEBUG "\033[1;33m[D]-> "
@@ -37,15 +39,6 @@ class Bot {
     } player;
 
     private:
-    // create buff;
-    void pushVarInt(short);
-    void pushString(std::string);
-    void pushUShort(unsigned short);
-    void pushUUID(void);
-
-    // decode buff;
-    uint32_t decodeVarInt(void);
-
     // handlers
     void send(void);
     void read(void);
