@@ -69,3 +69,13 @@ void packet::pushStrUUID(std::vector<uint8_t>& buff, std::string uuid) {
         buff.push_back(byte);
     }
 }
+
+void packet::uncompressPacket(std::vector<uint8_t>& buff, uint16_t packetLen) {
+    long unsigned int uncompressedLen = packet::decodeVarInt(buff);
+    std::vector<uint8_t> uncompressed(uncompressedLen);
+
+    uncompress(uncompressed.data(), &uncompressedLen, buff.data(), packetLen);
+
+    buff.clear();
+    buff = uncompressed;
+}

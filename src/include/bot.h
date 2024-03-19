@@ -1,7 +1,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <zlib.h>
 
 #include "varTypes.h"
 
@@ -23,20 +22,9 @@ class Bot {
     };
     void init(std::string addr, unsigned short port, std::string name, std::string uuid, int protocol);
 
-    struct {
-        long timeDay = 0;
-        long worldAge = 0;
-    } tickTime;
 
-    struct {
-#pragma pack(push, 1) // para crear un struct de 9 bytes
-        struct {
-            float foodSat;
-            uint8_t food;
-            float hp;
-        } healt;
-#pragma pack(pop)
-    } player;
+    types::player_t player;
+    types::tickTime_t tickTime;
 
     private:
     // handlers
@@ -52,7 +40,6 @@ class Bot {
     void playHandler(void);
 
     void loginPacket(void);
-    void uncompressPacket(void);
     void decodePacketLength(void);
 
     // basicas

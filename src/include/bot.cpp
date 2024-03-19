@@ -9,6 +9,7 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
 
     th = std::thread(&Bot::run, this);
 }
+
 void Bot::run(void) {
     using namespace boost::asio;
 
@@ -16,11 +17,7 @@ void Bot::run(void) {
     socket.connect(ip::tcp::endpoint(address, port));
 
     loginPacket();
-
-    printf(DEBUG "HOLAAA" RESET);
-
     io->run(); // run async_readsssss // esto me tuvo como 17 hras
-    printf(DEBUG "HOLAAA2" RESET);
 }
 
 
@@ -53,15 +50,6 @@ void Bot::decodePacketLength(void) {
     packetLen = value;
 }
 
-void Bot::uncompressPacket(void) {
-    long unsigned int uncompressedLen = packet::decodeVarInt(readBuff);
-    std::vector<uint8_t> uncompressed(uncompressedLen);
-
-    uncompress(uncompressed.data(), &uncompressedLen, readBuff.data(), packetLen);
-
-    readBuff.clear();
-    readBuff = uncompressed;
-}
 
 void Bot::loginPacket(void) {
 
@@ -102,7 +90,7 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
     // funca? //tute del futuro, si?????????????? , si. increible.
 
-    if(packetLen > compression_threshold) { uncompressPacket(); }
+    if(packetLen > compression_threshold) { packet::uncompressPacket(readBuff, packetLen); }
 
     packetID = packet::decodeVarInt(readBuff);
     id = packet::decodeVarInt(readBuff);
