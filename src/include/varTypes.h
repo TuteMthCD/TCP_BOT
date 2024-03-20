@@ -7,6 +7,17 @@
 // zlib para descomprimir
 #include <zlib.h>
 
+
+#define ERROR "\033[1;31m[E]-> " // Red
+#define INFO "\033[1;32m[I]-> "
+#define DEBUG "\033[1;33m[D]-> "
+#define RESET "\033[0m\n"
+#define BLUE_COLOR "\033[0;34m"
+#define PACKET "\033[0;35m[P]->" // magenta
+#define CYAN_COLOR "\033[0;36m"
+#define WHITE_COLOR "\033[0;37m" // White
+
+
 namespace packet {
 
 uint16_t decodeVarInt(std::vector<uint8_t>&);
@@ -21,6 +32,7 @@ void pushStrUUID(std::vector<uint8_t>&, std::string);
 
 void uncompressPacket(std::vector<uint8_t>&, uint16_t);
 
+void hexDebugPrint(std::vector<uint8_t>);
 } // namespace packet
 
 

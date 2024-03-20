@@ -1,4 +1,5 @@
 #include "varTypes.h"
+#include <cstdio>
 
 uint16_t packet::decodeVarInt(std::vector<uint8_t>& buff) {
     uint8_t shift = 0;
@@ -78,4 +79,11 @@ void packet::uncompressPacket(std::vector<uint8_t>& buff, uint16_t packetLen) {
 
     buff.clear();
     buff = uncompressed;
+}
+
+
+void packet::hexDebugPrint(std::vector<uint8_t> buff) {
+    printf(DEBUG);
+    for(uint8_t c : buff) printf("0x%02X ,", c);
+    printf(RESET);
 }

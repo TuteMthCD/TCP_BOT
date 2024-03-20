@@ -1,4 +1,7 @@
 #include "bot.h"
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -171,8 +174,8 @@ void Bot::playHandler(void) {
     if(packetID == 0x00) {
         switch(id) {
             case 0x24: // keep alive;
-                packet::pushVarInt(sendBuff,0x00);
-                packet::pushVarInt(sendBuff,0x15);
+                packet::pushVarInt(sendBuff, 0x00);
+                packet::pushVarInt(sendBuff, 0x15);
                 sendBuff.insert(sendBuff.end(), readBuff.begin(), readBuff.end());
                 send();
                 // printf(INFO "keep alive" RESET);
@@ -195,6 +198,7 @@ void Bot::playHandler(void) {
             case 0x3F: printf(DEBUG "Player recipe book" RESET); break; // recipe book.
             case 0x73: printf(DEBUG "Update recipes" RESET); break;     // recipes update
             case 0x13: printf(DEBUG "Player inventory" RESET); break;   // inventory container content.
+            case 0x6C: printf(DEBUG "Pickup item" RESET); break;        // Pickup item.
             case 0x3E: printf(DEBUG "Player position" RESET); break;    // player position.
 
             case 0x39: printf(INFO "ENTER COMBAT" RESET); break; // enter in combat.
@@ -208,9 +212,9 @@ void Bot::playHandler(void) {
                 printf(INFO "hp = %f, food = %d, foodSat = %f" RESET, player.healt.hp, player.healt.food, player.healt.foodSat);
 
                 if(player.healt.hp <= 0) { // auto-revive
-                    packet::pushVarInt(sendBuff,0x00);
-                    packet::pushVarInt(sendBuff,0x08);
-                    packet::pushVarInt(sendBuff,0x00);
+                    packet::pushVarInt(sendBuff, 0x00);
+                    packet::pushVarInt(sendBuff, 0x08);
+                    packet::pushVarInt(sendBuff, 0x00);
                     send();
                 }
 
@@ -222,7 +226,37 @@ void Bot::playHandler(void) {
                 break; // end combat.
 
             /*entities*/
-            case 0x01: break; // spawn entity.
+            case 0x01:
+
+                printf(INFO "entity spaw" RESET);
+
+                types::entity_t entity;
+
+                entity.ID = packet::decodeVarInt(readBuff);
+
+                for(int i = 0; i < 16; i++) entity.UUID = readBuff[i] << (i * 8);
+                readBuff.erase(readBuff.begin(), readBuff.begin() + 16);
+                
+                entity.typeID = packet::decodeVarInt(readBuff);
+
+                
+
+                std::memcpy(&entity.yaw, &readBuff, sizeof(entity.yaw) * 3);
+
+                readBuff.erase(readBuff.begin(), readBuff.begin() + 3);
+
+                entity.data = packet::decodeVarInt(readBuff);
+
+                printf(INFO "packetsize -> %zu" RESET, readBuff.size());
+
+                printf(DEBUG "ID -> 0x%02X , UUID -> 0x%lX%lX , typeID -> 0x%02X" RESET, entity.ID,
+                (uint64_t)(entity.UUID >> 64), (uint64_t)entity.UUID, entity.typeID);
+
+
+                packet::hexDebugPrint(readBuff);
+
+                break;        // spawn entity.
+            case 0x02: break; // spawn exp orb
             case 0x03: break; // entity animation.
             case 0x56: break; // entity metadata.
             case 0x59: break; // set equipment
