@@ -17,25 +17,6 @@
 #define CYAN_COLOR "\033[0;36m"
 #define WHITE_COLOR "\033[0;37m" // White
 
-
-namespace packet {
-
-uint16_t decodeVarInt(std::vector<uint8_t>&);
-uint64_t decodeVarLong(std::vector<uint8_t>&);
-
-void pushVarInt(std::vector<uint8_t>&, uint16_t);
-void pushString(std::vector<uint8_t>&, std::string);
-void pushUShort(std::vector<uint8_t>&, uint16_t);
-void pushByte(std::vector<uint8_t>&, uint8_t);
-
-void pushStrUUID(std::vector<uint8_t>&, std::string);
-
-void uncompressPacket(std::vector<uint8_t>&, uint16_t);
-
-void hexDebugPrint(std::vector<uint8_t>);
-} // namespace packet
-
-
 namespace types {
 
 #pragma pack(push, 1) // para crear un struct de 9 bytes
@@ -54,11 +35,11 @@ struct tickTime_t {
 };
 
 struct entity_t {
-    
+
     uint16_t ID;
     __uint128_t UUID;
     uint16_t typeID;
-    
+
     double_t x;
     double_t y;
     double_t z;
@@ -74,3 +55,25 @@ struct entity_t {
 };
 
 } // namespace types
+
+namespace packet {
+
+//decode vars
+uint16_t decodeVarInt(std::vector<uint8_t>&);
+uint64_t decodeVarLong(std::vector<uint8_t>&);
+double decodeDouble(std::vector<uint8_t>&);
+
+//decode structs
+types::entity_t decodeEntity(std::vector<uint8_t>&);
+
+void pushVarInt(std::vector<uint8_t>&, uint16_t);
+void pushString(std::vector<uint8_t>&, std::string);
+void pushUShort(std::vector<uint8_t>&, uint16_t);
+void pushByte(std::vector<uint8_t>&, uint8_t);
+
+void pushStrUUID(std::vector<uint8_t>&, std::string);
+
+void uncompressPacket(std::vector<uint8_t>&, uint16_t);
+
+void hexDebugPrint(std::vector<uint8_t>);
+} // namespace packet

@@ -1,5 +1,9 @@
 #include "varTypes.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 
 uint16_t packet::decodeVarInt(std::vector<uint8_t>& buff) {
     uint8_t shift = 0;
@@ -35,6 +39,16 @@ uint64_t packet::decodeVarLong(std::vector<uint8_t>& buff) {
 
         buff.erase(buff.begin());
     } while((buffByte & 0x80) != 0);
+
+    return value;
+}
+double packet::decodeDouble(std::vector<uint8_t>& buff) {
+    double_t value;
+    uint16_t len = sizeof(value);
+
+    std::reverse(buff.begin(), buff.begin() + len); // la doy vuelta(como a ella)
+    std::memcpy(&value, buff.data(), len);
+    buff.erase(buff.begin(), buff.begin() + len);
 
     return value;
 }
@@ -86,4 +100,37 @@ void packet::hexDebugPrint(std::vector<uint8_t> buff) {
     printf(DEBUG);
     for(uint8_t c : buff) printf("0x%02X ,", c);
     printf(RESET);
+}
+
+
+types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
+    printf(INFO "entity spaw" RESET);
+
+    types::entity_t entity;
+
+    entity.ID = packet::decodeVarInt(buff);
+
+    for(int i = 0; i < 16; i++) entity.UUID = buff[i] << (i * 8);
+    buff.erase(buff.begin(), buff.begin() + 16);
+
+    entity.typeID = packet::decodeVarInt(buff);
+
+    entity.x = packet::decodeDouble(buff);
+    entity.y = packet::decodeDouble(buff);
+    entity.z = packet::decodeDouble(buff);
+
+    // std::memcpy(&entity.yaw, &buff, sizeof(entity.yaw) * 3);
+    //
+    // buff.erase(buff.begin(), buff.begin() + 3);
+    //
+    // entity.data = packet::decodeVarInt(buff);
+    //
+    printf(INFO "packetsize -> %zu" RESET, buff.size());
+
+    printf(DEBUG "ID -> 0x%02X , UUID -> 0x%lX%lX , typeID -> 0x%02X , pos-> %f,%f,%f" RESET, entity.ID,
+    (uint64_t)(entity.UUID >> 64), (uint64_t)entity.UUID, entity.typeID, entity.x , entity.y , entity.z);
+
+    // packet::hexDebugPrint(buff);
+    //
+    return entity;
 }

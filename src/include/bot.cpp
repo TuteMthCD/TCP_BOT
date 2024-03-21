@@ -226,43 +226,14 @@ void Bot::playHandler(void) {
                 break; // end combat.
 
             /*entities*/
-            case 0x01:
-
-                printf(INFO "entity spaw" RESET);
-
-                types::entity_t entity;
-
-                entity.ID = packet::decodeVarInt(readBuff);
-
-                for(int i = 0; i < 16; i++) entity.UUID = readBuff[i] << (i * 8);
-                readBuff.erase(readBuff.begin(), readBuff.begin() + 16);
-                
-                entity.typeID = packet::decodeVarInt(readBuff);
-
-                
-
-                std::memcpy(&entity.yaw, &readBuff, sizeof(entity.yaw) * 3);
-
-                readBuff.erase(readBuff.begin(), readBuff.begin() + 3);
-
-                entity.data = packet::decodeVarInt(readBuff);
-
-                printf(INFO "packetsize -> %zu" RESET, readBuff.size());
-
-                printf(DEBUG "ID -> 0x%02X , UUID -> 0x%lX%lX , typeID -> 0x%02X" RESET, entity.ID,
-                (uint64_t)(entity.UUID >> 64), (uint64_t)entity.UUID, entity.typeID);
-
-
-                packet::hexDebugPrint(readBuff);
-
-                break;        // spawn entity.
-            case 0x02: break; // spawn exp orb
-            case 0x03: break; // entity animation.
-            case 0x56: break; // entity metadata.
-            case 0x59: break; // set equipment
-            case 0x71: break; // entity set atributes.
-            case 0x40: break; // remove entity.
-            case 0x1D: break; // entity event
+            case 0x01: packet::decodeEntity(readBuff); break; // spawn entity.
+            case 0x02: break;                                 // spawn exp orb
+            case 0x03: break;                                 // entity animation.
+            case 0x56: break;                                 // entity metadata.
+            case 0x59: break;                                 // set equipment
+            case 0x71: break;                                 // entity set atributes.
+            case 0x40: break;                                 // remove entity.
+            case 0x1D: break;                                 // entity event
 
             case 0x2D: break; // entity position.
             case 0x58: break; // entity velocity.
