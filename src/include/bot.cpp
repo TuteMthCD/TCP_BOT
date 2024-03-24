@@ -206,8 +206,7 @@ void Bot::playHandler(void) {
             case 0x22: printf(DEBUG "Hurt (auch)" RESET); break;  // hurt animation. (auch)
             case 0x5B:
 
-                std::reverse(readBuff.begin(), readBuff.end());                    // doy vuelta la pila, importarnte.
-                std::memcpy(&player.healt, readBuff.data(), sizeof(player.healt)); // copio vector a stuct
+                packet::decodeHealt(readBuff, player);
                 printf(INFO "hp = %f, food = %d, foodSat = %f" RESET, player.healt.hp, player.healt.food, player.healt.foodSat);
 
                 if(player.healt.hp <= 0) { // auto-revive

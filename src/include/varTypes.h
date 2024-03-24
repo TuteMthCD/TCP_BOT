@@ -19,15 +19,13 @@
 
 namespace types {
 
-#pragma pack(push, 1) // para crear un struct de 9 bytes
 struct player_t {
     struct {
-        float foodSat;
-        uint8_t food;
         float hp;
+        uint8_t food;
+        float foodSat;
     } healt;
 };
-#pragma pack(pop)
 
 struct tickTime_t {
     long timeDay = 0;
@@ -62,12 +60,14 @@ namespace packet {
 uint16_t decodeVarInt(std::vector<uint8_t>&);
 uint64_t decodeVarLong(std::vector<uint8_t>&);
 __uint128_t decodeUUID(std::vector<uint8_t>&);
+float decodeFloat(std::vector<uint8_t>& buff);
 double decodeDouble(std::vector<uint8_t>&);
 uint8_t decodeByte(std::vector<uint8_t>& buff);
 uint16_t decodeShort(std::vector<uint8_t>& buff);
 
 // decode structs
 types::entity_t decodeEntity(std::vector<uint8_t>&);
+void decodeHealt(std::vector<uint8_t>&, types::player_t&);
 
 void pushVarInt(std::vector<uint8_t>&, uint16_t);
 void pushString(std::vector<uint8_t>&, std::string);

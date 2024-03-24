@@ -44,13 +44,26 @@ uint64_t packet::decodeVarLong(std::vector<uint8_t>& buff) {
 
     return value;
 }
+float packet::decodeFloat(std::vector<uint8_t>& buff) {
+    float_t value;
+    uint16_t len = sizeof(value);
+    auto ite = buff.begin();
+
+    std::reverse(ite, ite + len); // la doy vuelta(como a ella)
+    std::memcpy(&value, buff.data(), len);
+    buff.erase(ite, ite + len);
+
+    return value;
+}
+
 double packet::decodeDouble(std::vector<uint8_t>& buff) {
     double_t value;
     uint16_t len = sizeof(value);
+    auto ite = buff.begin();
 
-    std::reverse(buff.begin(), buff.begin() + len); // la doy vuelta(como a ella)
+    std::reverse(ite, ite + len); // la doy vuelta(como a ella)
     std::memcpy(&value, buff.data(), len);
-    buff.erase(buff.begin(), buff.begin() + len);
+    buff.erase(ite, ite + len);
 
     return value;
 }
@@ -131,7 +144,7 @@ void packet::hexDebugPrint(std::vector<uint8_t> buff) {
     printf(RESET);
 }
 
-
+/* ------stucts decodes------------------- */
 types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
     printf(INFO "entity spaw" RESET);
 
@@ -163,4 +176,10 @@ types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
     printf(DEBUG "entity xVel -> %d" RESET, entity.zVel);
 
     return entity;
+}
+
+void packet::decodeHealt(std::vector<uint8_t>& buff, types::player_t& player) {
+    player.healt.hp = decodeFloat(buff);
+    player.healt.food = decodeVarInt(buff);
+    player.healt.foodSat = decodeFloat(buff);
 }
