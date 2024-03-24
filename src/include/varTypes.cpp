@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <iterator>
+#include <vector>
 
 uint16_t packet::decodeVarInt(std::vector<uint8_t>& buff) {
     uint8_t shift = 0;
@@ -53,6 +55,33 @@ double packet::decodeDouble(std::vector<uint8_t>& buff) {
     return value;
 }
 
+__uint128_t packet::decodeUUID(std::vector<uint8_t>& buff) {
+    __uint128_t UUID = 0;
+    auto ite = buff.begin();
+
+    for(int i = 0; i < 16; i++) UUID = buff[i] << (i * 8);
+    buff.erase(ite, ite + 16);
+
+    return UUID;
+}
+
+uint8_t packet::decodeByte(std::vector<uint8_t>& buff) {
+    uint8_t value = buff[0];
+    buff.erase(buff.begin());
+
+    return value;
+}
+uint16_t packet::decodeShort(std::vector<uint8_t>& buff) {
+    uint16_t value = buff[0] + (buff[1] << 8);
+    auto ite = buff.begin();
+
+    buff.erase(ite, ite + 2);
+    return value;
+}
+
+
+/*------------------push------------------------------------------*/
+
 void packet::pushVarInt(std::vector<uint8_t>& buff, uint16_t value) {
     do {
         char byte = value & 0x7F; // Obtener los 7 bits menos significativos
@@ -98,7 +127,7 @@ void packet::uncompressPacket(std::vector<uint8_t>& buff, uint16_t packetLen) {
 
 void packet::hexDebugPrint(std::vector<uint8_t> buff) {
     printf(DEBUG);
-    for(uint8_t c : buff) printf("0x%02X ,", c);
+    for(uint8_t c : buff) printf("%02X ", c);
     printf(RESET);
 }
 
@@ -110,8 +139,7 @@ types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
 
     entity.ID = packet::decodeVarInt(buff);
 
-    for(int i = 0; i < 16; i++) entity.UUID = buff[i] << (i * 8);
-    buff.erase(buff.begin(), buff.begin() + 16);
+    entity.UUID = decodeUUID(buff);
 
     entity.typeID = packet::decodeVarInt(buff);
 
@@ -119,18 +147,20 @@ types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
     entity.y = packet::decodeDouble(buff);
     entity.z = packet::decodeDouble(buff);
 
-    // std::memcpy(&entity.yaw, &buff, sizeof(entity.yaw) * 3);
-    //
-    // buff.erase(buff.begin(), buff.begin() + 3);
-    //
-    // entity.data = packet::decodeVarInt(buff);
-    //
-    printf(INFO "packetsize -> %zu" RESET, buff.size());
+    entity.pitch = decodeByte(buff);
+    entity.yaw = decodeByte(buff);
+    entity.headYaw = decodeByte(buff);
 
-    printf(DEBUG "ID -> 0x%02X , UUID -> 0x%lX%lX , typeID -> 0x%02X , pos-> %f,%f,%f" RESET, entity.ID,
-    (uint64_t)(entity.UUID >> 64), (uint64_t)entity.UUID, entity.typeID, entity.x , entity.y , entity.z);
+    entity.data = decodeVarInt(buff);
 
-    // packet::hexDebugPrint(buff);
-    //
+    entity.xVel = decodeShort(buff);
+    entity.yVel = decodeShort(buff);
+
+    packet::hexDebugPrint(buff);
+
+    entity.zVel = decodeShort(buff);
+
+    printf(DEBUG "entity xVel -> %d" RESET, entity.zVel);
+
     return entity;
 }

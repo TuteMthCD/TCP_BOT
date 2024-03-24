@@ -90,7 +90,6 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
     readBuff.resize(packetLen);
     socket.read_some(boost::asio::buffer(readBuff));
 
-
     // funca? //tute del futuro, si?????????????? , si. increible.
 
     if(packetLen > compression_threshold) { packet::uncompressPacket(readBuff, packetLen); }

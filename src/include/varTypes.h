@@ -58,12 +58,15 @@ struct entity_t {
 
 namespace packet {
 
-//decode vars
+// decode vars
 uint16_t decodeVarInt(std::vector<uint8_t>&);
 uint64_t decodeVarLong(std::vector<uint8_t>&);
+__uint128_t decodeUUID(std::vector<uint8_t>&);
 double decodeDouble(std::vector<uint8_t>&);
+uint8_t decodeByte(std::vector<uint8_t>& buff);
+uint16_t decodeShort(std::vector<uint8_t>& buff);
 
-//decode structs
+// decode structs
 types::entity_t decodeEntity(std::vector<uint8_t>&);
 
 void pushVarInt(std::vector<uint8_t>&, uint16_t);
