@@ -25,6 +25,7 @@ class Bot {
 
     types::player_t player;
     types::tickTime_t tickTime;
+    std::vector<types::entity_t> entityList;
 
     private:
     // handlers
@@ -42,6 +43,8 @@ class Bot {
     void loginPacket(void);
     void decodePacketLength(void);
 
+    void spawnEntity(types::entity_t);
+    void removeEntities();
     // basicas
     std::string addr;
     unsigned int port;

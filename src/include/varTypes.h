@@ -47,11 +47,11 @@ struct entity_t {
     uint8_t headYaw;
     uint16_t data;
 
-    uint16_t xVel;
-    uint16_t yVel;
-    uint16_t zVel;
+    int16_t xVel;
+    int16_t yVel;
+    int16_t zVel;
 };
-
+bool compareByID(const entity_t&, const entity_t&);
 } // namespace types
 
 namespace packet {
@@ -63,7 +63,7 @@ __uint128_t decodeUUID(std::vector<uint8_t>&);
 float decodeFloat(std::vector<uint8_t>& buff);
 double decodeDouble(std::vector<uint8_t>&);
 uint8_t decodeByte(std::vector<uint8_t>& buff);
-uint16_t decodeShort(std::vector<uint8_t>& buff);
+int16_t decodeShort(std::vector<uint8_t>& buff);
 
 // decode structs
 types::entity_t decodeEntity(std::vector<uint8_t>&);

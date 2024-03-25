@@ -1,11 +1,6 @@
 #include "varTypes.h"
 #include <algorithm>
-#include <cmath>
-#include <cstdint>
-#include <cstdio>
 #include <cstring>
-#include <iterator>
-#include <vector>
 
 uint16_t packet::decodeVarInt(std::vector<uint8_t>& buff) {
     uint8_t shift = 0;
@@ -84,8 +79,8 @@ uint8_t packet::decodeByte(std::vector<uint8_t>& buff) {
 
     return value;
 }
-uint16_t packet::decodeShort(std::vector<uint8_t>& buff) {
-    uint16_t value = buff[0] + (buff[1] << 8);
+int16_t packet::decodeShort(std::vector<uint8_t>& buff) {
+    int16_t value = buff[1] + (buff[0] << 8);
     auto ite = buff.begin();
 
     buff.erase(ite, ite + 2);
@@ -146,14 +141,10 @@ void packet::hexDebugPrint(std::vector<uint8_t> buff) {
 
 /* ------stucts decodes------------------- */
 types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
-    printf(INFO "entity spaw" RESET);
-
     types::entity_t entity;
 
     entity.ID = packet::decodeVarInt(buff);
-
     entity.UUID = decodeUUID(buff);
-
     entity.typeID = packet::decodeVarInt(buff);
 
     entity.x = packet::decodeDouble(buff);
@@ -169,11 +160,7 @@ types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
     entity.xVel = decodeShort(buff);
     entity.yVel = decodeShort(buff);
 
-    packet::hexDebugPrint(buff);
-
     entity.zVel = decodeShort(buff);
-
-    printf(DEBUG "entity xVel -> %d" RESET, entity.zVel);
 
     return entity;
 }
@@ -182,4 +169,8 @@ void packet::decodeHealt(std::vector<uint8_t>& buff, types::player_t& player) {
     player.healt.hp = decodeFloat(buff);
     player.healt.food = decodeVarInt(buff);
     player.healt.foodSat = decodeFloat(buff);
+}
+
+bool types::compareByID(const entity_t& a, const entity_t& b) {
+    return a.ID < b.ID;
 }
