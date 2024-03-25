@@ -43,8 +43,9 @@ class Bot {
     void loginPacket(void);
     void decodePacketLength(void);
 
-    void spawnEntity(types::entity_t);
+    void spawnEntity();
     void removeEntities();
+    void updateEntityPos();
     // basicas
     std::string addr;
     unsigned int port;

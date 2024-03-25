@@ -138,39 +138,3 @@ void packet::hexDebugPrint(std::vector<uint8_t> buff) {
     for(uint8_t c : buff) printf("%02X ", c);
     printf(RESET);
 }
-
-/* ------stucts decodes------------------- */
-types::entity_t packet::decodeEntity(std::vector<uint8_t>& buff) {
-    types::entity_t entity;
-
-    entity.ID = packet::decodeVarInt(buff);
-    entity.UUID = decodeUUID(buff);
-    entity.typeID = packet::decodeVarInt(buff);
-
-    entity.x = packet::decodeDouble(buff);
-    entity.y = packet::decodeDouble(buff);
-    entity.z = packet::decodeDouble(buff);
-
-    entity.pitch = decodeByte(buff);
-    entity.yaw = decodeByte(buff);
-    entity.headYaw = decodeByte(buff);
-
-    entity.data = decodeVarInt(buff);
-
-    entity.xVel = decodeShort(buff);
-    entity.yVel = decodeShort(buff);
-
-    entity.zVel = decodeShort(buff);
-
-    return entity;
-}
-
-void packet::decodeHealt(std::vector<uint8_t>& buff, types::player_t& player) {
-    player.healt.hp = decodeFloat(buff);
-    player.healt.food = decodeVarInt(buff);
-    player.healt.foodSat = decodeFloat(buff);
-}
-
-bool types::compareByID(const entity_t& a, const entity_t& b) {
-    return a.ID < b.ID;
-}

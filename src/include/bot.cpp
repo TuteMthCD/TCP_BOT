@@ -208,7 +208,11 @@ void Bot::playHandler(void) {
             case 0x22: printf(DEBUG "Hurt (auch)" RESET); break;  // hurt animation. (auch)
             case 0x5B:                                            // set healt
 
-                packet::decodeHealt(readBuff, player);
+                player.healt = {
+                    .hp = packet::decodeFloat(readBuff),
+                    .food = packet::decodeVarInt(readBuff),
+                    .foodSat = packet::decodeFloat(readBuff),
+                };
                 printf(INFO "hp = %f, food = %d, foodSat = %f" RESET, player.healt.hp, player.healt.food, player.healt.foodSat);
 
                 if(player.healt.hp <= 0) { // auto-revive
@@ -226,7 +230,7 @@ void Bot::playHandler(void) {
                 break; // end combat.
 
             /*entities*/
-            case 0x01: spawnEntity(packet::decodeEntity(readBuff)); break; // spawn entity.
+            case 0x01: spawnEntity(); break; // spawn entity.
 
             case 0x02: break;                   // spawn exp orb
             case 0x03: break;                   // entity animation.
@@ -236,10 +240,10 @@ void Bot::playHandler(void) {
             case 0x40: removeEntities(); break; // remove entity.
             case 0x1D: break;                   // entity event
 
-            case 0x2D: break; // entity position.
-            case 0x58: break; // entity velocity.
-            case 0x46: break; // entity angle head. //idk con esto.
-            case 0x2E: break; // entity rotation.
+            case 0x2D: updateEntityPos(); break; // entity position.
+            case 0x58: break;                    // entity velocity.
+            case 0x46: break;                    // entity angle head. //idk con esto.
+            case 0x2E: break;                    // entity rotation.
 
             case 0x2C: break; // entity teleport less than 8 blocks.
             case 0x6D: break; // entity teleport more than 8 blocks.
@@ -266,10 +270,36 @@ void Bot::playHandler(void) {
         status, packetID, id, packetLen, packetLen, readBuff.size());
 }
 
-void Bot::spawnEntity(types::entity_t entity) {
-    auto ite = std::lower_bound(entityList.begin(), entityList.end(), entity, types::compareByID);
+
+// auxiliar para usar en lower_bound
+bool compareByID(const types::entity_t& a, const types::entity_t& b) {
+    return a.ID < b.ID;
+}
+
+
+void Bot::spawnEntity() {
+    using namespace packet;
+
+    types::entity_t entity = {
+        .ID = decodeVarInt(readBuff),
+        .UUID = decodeUUID(readBuff),
+        .typeID = decodeVarInt(readBuff),
+        .x = decodeDouble(readBuff),
+        .y = decodeDouble(readBuff),
+        .z = decodeDouble(readBuff),
+        .pitch = decodeByte(readBuff),
+        .yaw = decodeByte(readBuff),
+        .headYaw = decodeByte(readBuff),
+        .data = decodeVarInt(readBuff),
+        .xVel = decodeShort(readBuff),
+        .yVel = decodeShort(readBuff),
+        .zVel = decodeShort(readBuff),
+    };
+
+    auto ite = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
     entityList.insert(ite, entity);
-    printf(INFO "Entity Spawn ID-> 0x%02X , typeID -> 0x%02X, entityCount -> %zu" RESET, entity.ID, entity.typeID,
+
+    printf(INFO "Entity Spawn ID-> 0x%02X , typeID -> 0x%02X , entityCount -> %zu" RESET, entity.ID, entity.typeID,
     entityList.size());
 }
 
@@ -279,11 +309,33 @@ void Bot::removeEntities() {
         types::entity_t entity = {
             .ID = packet::decodeVarInt(readBuff),
         };
-        auto ite = std::lower_bound(entityList.begin(), entityList.end(), entity, types::compareByID);
+        auto ite = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
 
         if(ite->ID == entity.ID) {
             entityList.erase(ite);
             printf(INFO "Entity remove ID-> 0x%02X , entityCount -> %zu" RESET, entity.ID, entityList.size());
         }
+    }
+}
+
+void Bot::updateEntityPos() {
+    using namespace packet;
+
+    types::entity_t entity = {
+        .ID = decodeVarInt(readBuff),
+    };
+
+    auto ite = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
+
+    if(ite->ID == entity.ID) {
+        ite->x += (decodeShort(readBuff) * 32 + ite->x * 32) * 128;
+        ite->y += (decodeShort(readBuff) * 32 + ite->y * 32) * 128;
+        ite->z += (decodeShort(readBuff) * 32 + ite->z * 32) * 128;
+
+        ite->yaw = decodeByte(readBuff);
+        ite->pitch = decodeByte(readBuff);
+        ite->yaw = decodeByte(readBuff);
+
+        ite->onGround = (bool)readBuff[0];
     }
 }

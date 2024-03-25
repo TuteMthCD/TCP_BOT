@@ -22,7 +22,7 @@ namespace types {
 struct player_t {
     struct {
         float hp;
-        uint8_t food;
+        uint16_t food;
         float foodSat;
     } healt;
 };
@@ -50,6 +50,8 @@ struct entity_t {
     int16_t xVel;
     int16_t yVel;
     int16_t zVel;
+
+    bool onGround;
 };
 bool compareByID(const entity_t&, const entity_t&);
 } // namespace types
@@ -64,10 +66,6 @@ float decodeFloat(std::vector<uint8_t>& buff);
 double decodeDouble(std::vector<uint8_t>&);
 uint8_t decodeByte(std::vector<uint8_t>& buff);
 int16_t decodeShort(std::vector<uint8_t>& buff);
-
-// decode structs
-types::entity_t decodeEntity(std::vector<uint8_t>&);
-void decodeHealt(std::vector<uint8_t>&, types::player_t&);
 
 void pushVarInt(std::vector<uint8_t>&, uint16_t);
 void pushString(std::vector<uint8_t>&, std::string);
