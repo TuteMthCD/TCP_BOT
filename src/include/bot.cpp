@@ -1,9 +1,5 @@
 #include "bot.h"
-#include <algorithm>
-#include <cstdint>
 #include <cstdio>
-#include <cstring>
-#include <vector>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -240,13 +236,13 @@ void Bot::playHandler(void) {
             case 0x40: removeEntities(); break; // remove entity.
             case 0x1D: break;                   // entity event
 
-            case 0x2D: updateEntityPos(); break; // entity position.
-            case 0x58: break;                    // entity velocity.
-            case 0x46: break;                    // entity angle head. //idk con esto.
-            case 0x2E: break;                    // entity rotation.
+            case 0x2D: updateEntityPosAngle(); break; // entity position.
+            case 0x58: break;                         // entity velocity.
+            case 0x46: break;                         // entity angle head. //idk con esto.
+            case 0x2E: updateEntityAngle(); break;    // entity rotation.
 
-            case 0x2C: break; // entity teleport less than 8 blocks.
-            case 0x6D: break; // entity teleport more than 8 blocks.
+            case 0x2C: updateEntityPos(); break; // entity teleport less than 8 blocks.
+            case 0x6D: break;                    // entity teleport more than 8 blocks.
 
             case 0x52: break; // center chunk
 
@@ -325,17 +321,55 @@ void Bot::updateEntityPos() {
         .ID = decodeVarInt(readBuff),
     };
 
-    auto ite = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
+    auto entiPointer = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
 
-    if(ite->ID == entity.ID) {
-        ite->x += (decodeShort(readBuff) * 32 + ite->x * 32) * 128;
-        ite->y += (decodeShort(readBuff) * 32 + ite->y * 32) * 128;
-        ite->z += (decodeShort(readBuff) * 32 + ite->z * 32) * 128;
+    if(entiPointer->ID == entity.ID) {
+        entiPointer->x += (double)decodeShort(readBuff) / (128 * 32);
+        entiPointer->y += (double)decodeShort(readBuff) / (128 * 32);
+        entiPointer->z += (double)decodeShort(readBuff) / (128 * 32);
 
-        ite->yaw = decodeByte(readBuff);
-        ite->pitch = decodeByte(readBuff);
-        ite->yaw = decodeByte(readBuff);
-
-        ite->onGround = (bool)readBuff[0];
+        entiPointer->onGround = (bool)readBuff[0];
     }
 }
+
+
+void Bot::updateEntityPosAngle() {
+    using namespace packet;
+
+    types::entity_t entity = {
+        .ID = decodeVarInt(readBuff),
+    };
+
+    auto entiPointer = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
+
+    if(entiPointer->ID == entity.ID) {
+        entiPointer->x += (double)decodeShort(readBuff) / (128 * 32);
+        entiPointer->y += (double)decodeShort(readBuff) / (128 * 32);
+        entiPointer->z += (double)decodeShort(readBuff) / (128 * 32);
+
+        entiPointer->yaw = decodeByte(readBuff);
+        entiPointer->pitch = decodeByte(readBuff);
+        entiPointer->yaw = decodeByte(readBuff);
+
+        entiPointer->onGround = (bool)readBuff[0];
+    }
+}
+void Bot::updateEntityAngle() {
+    using namespace packet;
+
+    types::entity_t entity = {
+        .ID = decodeVarInt(readBuff),
+    };
+
+    auto entiPointer = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
+
+    if(entiPointer->ID == entity.ID) {
+
+        entiPointer->yaw = decodeByte(readBuff);
+        entiPointer->pitch = decodeByte(readBuff);
+        entiPointer->yaw = decodeByte(readBuff);
+
+        entiPointer->onGround = (bool)readBuff[0];
+    }
+}
+

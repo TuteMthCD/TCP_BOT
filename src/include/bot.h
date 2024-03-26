@@ -46,6 +46,8 @@ class Bot {
     void spawnEntity();
     void removeEntities();
     void updateEntityPos();
+    void updateEntityPosAngle();
+    void updateEntityAngle();
     // basicas
     std::string addr;
     unsigned int port;
