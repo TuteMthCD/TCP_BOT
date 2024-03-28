@@ -87,9 +87,7 @@ int16_t packet::decodeShort(std::vector<uint8_t>& buff) {
     return value;
 }
 
-
 /*------------------push------------------------------------------*/
-
 void packet::pushVarInt(std::vector<uint8_t>& buff, uint16_t value) {
     do {
         char byte = value & 0x7F; // Obtener los 7 bits menos significativos

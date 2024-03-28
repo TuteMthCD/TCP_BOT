@@ -7,7 +7,6 @@
 // zlib para descomprimir
 #include <zlib.h>
 
-
 #define ERROR "\033[1;31m[E]-> " // Red
 #define INFO "\033[1;32m[I]-> "
 #define DEBUG "\033[1;33m[D]-> "

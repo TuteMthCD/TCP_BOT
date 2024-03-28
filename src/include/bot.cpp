@@ -1,5 +1,4 @@
 #include "bot.h"
-#include <cstdio>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -228,9 +227,13 @@ void Bot::playHandler(void) {
             /*entities*/
             case 0x01: spawnEntity(); break; // spawn entity.
 
-            case 0x02: break;                   // spawn exp orb
-            case 0x03: break;                   // entity animation.
-            case 0x56: break;                   // entity metadata.
+            case 0x02: break; // spawn exp orb
+            case 0x03: break; // entity animation.
+            case 0x56:
+                printf(DEBUG "Entity metadata" RESET);
+                printf(DEBUG "EntityID->0x%02X" RESET, packet::decodeVarInt(readBuff));
+                packet::hexDebugPrint(readBuff);
+                break;                          // entity metadata.
             case 0x59: break;                   // set equipment
             case 0x71: break;                   // entity set atributes.
             case 0x40: removeEntities(); break; // remove entity.
@@ -252,6 +255,7 @@ void Bot::playHandler(void) {
             case 0x27: break; // particle
             case 0x6E: break; // tick state.
             case 0x6F: break; // step tick.
+            case 0x26: break; // sound.
 
             case 0x20: break; // game event.
             case 0x0B: break; // dificulty
@@ -265,7 +269,6 @@ void Bot::playHandler(void) {
         printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET,
         status, packetID, id, packetLen, packetLen, readBuff.size());
 }
-
 
 // auxiliar para usar en lower_bound
 bool compareByID(const types::entity_t& a, const types::entity_t& b) {
@@ -372,4 +375,3 @@ void Bot::updateEntityAngle() {
         entiPointer->onGround = (bool)readBuff[0];
     }
 }
-
