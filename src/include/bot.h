@@ -26,6 +26,8 @@ class Bot {
     types::player_t player;
     types::tickTime_t tickTime;
     std::vector<types::entity_t> entityList;
+    
+    std::thread th;
 
     private:
     // handlers
@@ -62,7 +64,6 @@ class Bot {
     // socket tcp
     boost::asio::ip::tcp::socket socket;
     boost::asio::io_context* io;
-    std::thread th;
     // otras
     enum {
         login,
