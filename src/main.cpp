@@ -4,6 +4,59 @@
 #include "imgui_impl_opengl3.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
+#include <cstdint>
+#include <cstdio>
+#include <ctime>
+#include <string>
+#include <vector>
+
+struct ventana {
+    std::string title;
+    uint16_t id;
+    std::vector<uint8_t> buff;
+};
+
+std::vector<ventana> ventanas_l;
+
+void ShowMemoryList(std::string name, std::vector<uint8_t> buff, uint16_t id, int bytesPerRow = 32) {
+
+    ventana aux = {
+        .title = name,
+        .id = id,
+        .buff = buff,
+    };
+
+    auto ite =
+    std::lower_bound(ventanas_l.begin(), ventanas_l.end(), aux, [](ventana a, ventana b) { return a.id < b.id; });
+    if(ite == ventanas_l.end()) {
+        ventanas_l.push_back(aux);
+    } else if(ite->id != id) {
+        ventanas_l.insert(ite, aux);
+    } else {
+        *ite = aux;
+    }
+
+    for(ventana vent : ventanas_l) {
+        std::snprintf(vent.title.data(), sizeof(vent.title), "%s 0x%02X",vent.title.c_str(), vent.id);
+        ImGui::Begin(vent.title.data());
+        uint8_t memorySize = vent.buff.size();
+
+        // Iterar sobre la memoria y mostrar cada byte
+        for(int i = 0; i < memorySize; i += bytesPerRow) {
+            ImGui::Text("0x%04X: ", i); // Dirección de memoria
+
+            // Mostrar bytes de la fila actual
+            for(int j = 0; j < bytesPerRow; j++) {
+                if(i + j < memorySize) {
+                    ImGui::SameLine();
+                    ImGui::Text("%02X ", vent.buff[i + j]);
+                }
+            }
+        }
+
+        ImGui::End();
+    }
+}
 
 int main() {
     using namespace std;
@@ -44,9 +97,7 @@ int main() {
         ImGui::NewFrame();
 
         // Dibujar
-        ImGui::Begin("Hello, world!");
-        ImGui::Text("ESTO COMPILA y FUNCIONAAAA WACHOOOOOOOOOO");
-        ImGui::End();
+        ShowMemoryList("READ BUFF", bot.readBuff, bot.id);
 
         // Renderizar
         glClear(GL_COLOR_BUFFER_BIT);
