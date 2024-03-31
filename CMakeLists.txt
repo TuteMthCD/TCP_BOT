@@ -26,6 +26,7 @@ endif()
 file(GLOB IMGUI_SOURCES 
     ${CMAKE_CURRENT_BINARY_DIR}/external_includes/imgui/*.cpp 
     ${CMAKE_CURRENT_BINARY_DIR}/external_includes/imgui/backends/imgui_impl_glfw.cpp 
+    ${CMAKE_CURRENT_BINARY_DIR}/external_includes/imgui/backends/imgui_impl_opengl3.cpp
     )
 include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/external_includes/imgui
@@ -45,6 +46,7 @@ add_executable(main ${SOURCES})
 #target_link_libraries(main m)
 target_link_libraries(main z)
 target_link_libraries(main glfw)
+target_link_libraries(main GL) #POR ALGUNA RAZON VA EN MAYUSCULAS AAAAAAAAAAAAAAAAAAAAAAAHHHHHHHH
 
 add_custom_target(tcp ALL
     DEPENDS main

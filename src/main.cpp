@@ -1,6 +1,8 @@
 #include "bot.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
 int main() {
@@ -10,28 +12,57 @@ int main() {
     Bot bot(Boost_IO);
     bot.init("127.0.0.1", 25565, "tute_BOT", "d42755f0f7be48ec9abc21fc1b1f567d", 765);
 
-    // while(true) { sleep(5); }
-    // getchar();
+    // Inicializar GLFW
+    if(!glfwInit()) { return -1; }
 
-    glfwInit();
-    GLFWwindow* window = glfwCreateWindow(800, 600, "TCP BOT", NULL, NULL);
+    // Crear una ventana
+    GLFWwindow* window = glfwCreateWindow(800, 600, "TCP_BOT", NULL, NULL);
+    if(!window) {
+        glfwTerminate();
+        return -1;
+    }
+
+    // Configurar contexto de OpenGL
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1); // Habilitar la sincronización vertical
 
-    // Create window with graphics context
-    if(window == NULL) return 1;
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
-
-    // Setup Dear ImGui context
+    // Inicializar ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
-
-    // Setup Platform/Renderer backends
+    (void)io;
     ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 130");
 
-    getchar();
+    while(!glfwWindowShouldClose(window)) {
+        // Procesar eventos
+        glfwPollEvents();
+
+        // Iniciar el marco de ImGui
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Dibujar
+        ImGui::Begin("Hello, world!");
+        ImGui::Text("ESTO COMPILA y FUNCIONAAAA WACHOOOOOOOOOO");
+        ImGui::End();
+
+        // Renderizar
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(window);
+    }
+
+    // Limpiar ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    // Limpiar GLFW
+    glfwDestroyWindow(window);
+    glfwTerminate();
 
     bot.th.detach(); // f bot
 
