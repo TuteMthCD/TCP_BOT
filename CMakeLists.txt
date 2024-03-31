@@ -19,6 +19,11 @@ else()
         COMMAND git clone "https://github.com/ocornut/imgui" imgui
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external_includes
     )
+    message(STATUS "Descargando dependencia -mem-editor")
+    execute_process(
+        COMMAND git clone "https://github.com/ocornut/imgui_club" mem-editor
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external_includes
+    )
 
 endif()
 
@@ -30,7 +35,8 @@ file(GLOB IMGUI_SOURCES
     )
 include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/external_includes/imgui
-    ${CMAKE_CURRENT_BINARY_DIR}/external_includes/imgui/backends 
+    ${CMAKE_CURRENT_BINARY_DIR}/external_includes/imgui/backends
+    ${CMAKE_CURRENT_BINARY_DIR}/external_includes/mem-editor/imgui_memory_editor
     )
 
 file(GLOB INCLUDE_SOURCES src/include/*.cpp)
