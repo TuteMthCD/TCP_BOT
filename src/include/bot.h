@@ -27,6 +27,14 @@ class Bot {
     types::tickTime_t tickTime;
     std::vector<types::entity_t> entityList;
 
+    std::thread th;
+    // buffer necesesario para recibir
+    std::vector<uint8_t> sendBuff;
+    std::vector<uint8_t> readBuff;
+    uint32_t packetLen;
+    uint16_t id;
+
+
     private:
     // handlers
     void send(void);
@@ -55,14 +63,9 @@ class Bot {
     std::string name;
     std::string uuid;
     int protocol;
-    // buffer necesesario para recibir
-    std::vector<uint8_t> sendBuff;
-    std::vector<uint8_t> readBuff;
-    uint32_t packetLen;
     // socket tcp
     boost::asio::ip::tcp::socket socket;
     boost::asio::io_context* io;
-    std::thread th;
     // otras
     enum {
         login,
@@ -70,7 +73,6 @@ class Bot {
         play,
     } status = login;
 
-    uint32_t packetID;
-    uint32_t id;
-    uint32_t compression_threshold = 256; // 256 is default.
+    uint16_t packetID;
+    uint16_t compression_threshold = 256; // 256 is default.
 };
