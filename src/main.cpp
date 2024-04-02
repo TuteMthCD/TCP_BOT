@@ -76,8 +76,10 @@ int main() {
         ImGui::InputText("##ID4", bot.uuid.data(), bot.uuid.size() + 1);
 
         if(ImGui::Button("connect")) bot.connect();
+        ImGui::SameLine();
         if(ImGui::Button("disconnect")) bot.disconnect();
-
+        ImGui::SameLine();
+        ImGui::Text(bot.getConnectedStatus() ? "Connected" : "Disconnected");
         ImGui::End();
 
         // mem_edit.DrawWindow("Memory Editor", bot.addr.data(), bot.addr.size());
