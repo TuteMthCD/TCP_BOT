@@ -22,7 +22,7 @@ void Bot::disconnect(void) {
         socket.close();
         io->stop();
         io->reset();
-        th.detach();
+        th.join();
 
         status = login;
     }
