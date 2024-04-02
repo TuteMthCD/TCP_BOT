@@ -1,4 +1,5 @@
 #include "bot.h"
+#include <sys/socket.h>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -6,8 +7,25 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
     name = _name;
     uuid = _uuid;
     protocol = _protocol;
+}
+void Bot::connect(void) {
+    if(!connected) {
+        connected = true;
+        th = std::thread(&Bot::run, this);
+    }
+}
 
-    th = std::thread(&Bot::run, this);
+void Bot::disconnect(void) {
+    if(connected) {
+        connected = false;
+        socket.cancel();
+        socket.close();
+        io->stop();
+        io->reset();
+        th.detach();
+
+        status = login;
+    }
 }
 
 void Bot::run(void) {
@@ -28,9 +46,10 @@ void Bot::send() {
 }
 
 void Bot::read(void) {
-    packetLen = 0;
-    socket.async_read_some(
-    boost::asio::buffer(&packetLen, 1), std::bind(&Bot::handler, this, std::placeholders::_1, std::placeholders::_2));
+    if(connected) {
+        packetLen = 0;
+        socket.async_read_some(boost::asio::buffer(&packetLen, 1), std::bind(&Bot::handler, this, std::placeholders::_1, std::placeholders::_2));
+    }
 }
 
 void Bot::decodePacketLength(void) {
@@ -98,9 +117,9 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
     // status, packetID, id, packetLen, packetLen, readBuff.size());
 
     switch(status) {
-        case login: loginHandler(); break;
-        case config: configHandler(); break;
-        case play: playHandler(); break;
+    case login: loginHandler(); break;
+    case config: configHandler(); break;
+    case play: playHandler(); break;
     }
 
     read();
@@ -109,26 +128,26 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
 void Bot::loginHandler(void) {
     switch(packetID) {
-        case 0x00:
-            if(id == 0x02) {
-                packet::pushVarInt(sendBuff, 0x00);
-                packet::pushByte(sendBuff, 0x03);
+    case 0x00:
+        if(id == 0x02) {
+            packet::pushVarInt(sendBuff, 0x00);
+            packet::pushByte(sendBuff, 0x03);
 
-                send();
+            send();
 
-                status = config;
-                printf(INFO "login successfully" RESET);
-            }
+            status = config;
+            printf(INFO "login successfully" RESET);
+        }
 
-            break;
+        break;
 
-        case 0x03: // compression packet
-            compression_threshold = id;
+    case 0x03: // compression packet
+        compression_threshold = id;
 
-            printf(INFO "compression_threshold = %d" RESET, compression_threshold);
-            break;
+        printf(INFO "compression_threshold = %d" RESET, compression_threshold);
+        break;
 
-        default: break;
+    default: break;
     }
 }
 
@@ -169,104 +188,105 @@ void Bot::configHandler(void) {
 void Bot::playHandler(void) {
     if(packetID == 0x00) {
         switch(id) {
-            case 0x24: // keep alive;
+        case 0x24: // keep alive;
+            packet::pushVarInt(sendBuff, 0x00);
+            packet::pushVarInt(sendBuff, 0x15);
+            sendBuff.insert(sendBuff.end(), readBuff.begin(), readBuff.end());
+            send();
+            // printf(INFO "keep alive" RESET);
+            break;
+        case 0x62: // ticktime
+
+            std::reverse(readBuff.begin(), readBuff.end());            // doy vuelta la pila, importarnte.
+            std::memcpy(&tickTime, readBuff.data(), 2 * sizeof(long)); // copio vector a stuct
+
+            break;
+
+
+        case 0x09:
+            break; // block update.
+
+        /*Player*/
+        case 0x29: printf(DEBUG "Player info" RESET); break;        // player info.
+        case 0x36: printf(DEBUG "Player habilities" RESET); break;  // player habilities.
+        case 0x51: printf(DEBUG "Player slot" RESET); break;        // slot selected.
+        case 0x3F: printf(DEBUG "Player recipe book" RESET); break; // recipe book.
+        case 0x73: printf(DEBUG "Update recipes" RESET); break;     // recipes update
+        case 0x13: printf(DEBUG "Player inventory" RESET); break;   // inventory container content.
+        case 0x6C: printf(DEBUG "Pickup item" RESET); break;        // Pickup item.
+        case 0x3E: printf(DEBUG "Player position" RESET); break;    // player position.
+
+        case 0x39: printf(INFO "ENTER COMBAT" RESET); break; // enter in combat.
+
+        case 0x19: printf(DEBUG "Damage event" RESET); break; // damage event.
+        case 0x22: printf(DEBUG "Hurt (auch)" RESET); break;  // hurt animation. (auch)
+        case 0x5B:                                            // set healt
+
+            player.healt = {
+                .hp = packet::decodeFloat(readBuff),
+                .food = packet::decodeVarInt(readBuff),
+                .foodSat = packet::decodeFloat(readBuff),
+            };
+            printf(INFO "hp = %f, food = %d, foodSat = %f" RESET, player.healt.hp, player.healt.food, player.healt.foodSat);
+
+            if(player.healt.hp <= 0) { // auto-revive
                 packet::pushVarInt(sendBuff, 0x00);
-                packet::pushVarInt(sendBuff, 0x15);
-                sendBuff.insert(sendBuff.end(), readBuff.begin(), readBuff.end());
+                packet::pushVarInt(sendBuff, 0x08);
+                packet::pushVarInt(sendBuff, 0x00);
                 send();
-                // printf(INFO "keep alive" RESET);
-                break;
-            case 0x62: // ticktime
+            }
 
-                std::reverse(readBuff.begin(), readBuff.end());            // doy vuelta la pila, importarnte.
-                std::memcpy(&tickTime, readBuff.data(), 2 * sizeof(long)); // copio vector a stuct
+            break;
+        case 0x5A: printf(DEBUG "Set xp" RESET); break; // set xp
 
-                break;
+        case 0x38:
+            printf(INFO "END COMBAT" RESET);
+            break; // end combat.
 
+        /*entities*/
+        case 0x01: spawnEntity(); break; // spawn entity.
 
-            case 0x09:
-                break; // block update.
+        case 0x02: break; // spawn exp orb
+        case 0x03: break; // entity animation.
+        case 0x56:
+            printf(DEBUG "Entity metadata" RESET);
+            printf(DEBUG "EntityID->0x%02X" RESET, packet::decodeVarInt(readBuff));
+            packet::hexDebugPrint(readBuff);
+            break;                          // entity metadata.
+        case 0x59: break;                   // set equipment
+        case 0x71: break;                   // entity set atributes.
+        case 0x40: removeEntities(); break; // remove entity.
+        case 0x1D: break;                   // entity event
 
-            /*Player*/
-            case 0x29: printf(DEBUG "Player info" RESET); break;        // player info.
-            case 0x36: printf(DEBUG "Player habilities" RESET); break;  // player habilities.
-            case 0x51: printf(DEBUG "Player slot" RESET); break;        // slot selected.
-            case 0x3F: printf(DEBUG "Player recipe book" RESET); break; // recipe book.
-            case 0x73: printf(DEBUG "Update recipes" RESET); break;     // recipes update
-            case 0x13: printf(DEBUG "Player inventory" RESET); break;   // inventory container content.
-            case 0x6C: printf(DEBUG "Pickup item" RESET); break;        // Pickup item.
-            case 0x3E: printf(DEBUG "Player position" RESET); break;    // player position.
+        case 0x2D: updateEntityPosAngle(); break; // entity position.
+        case 0x58: break;                         // entity velocity.
+        case 0x46: break;                         // entity angle head. //idk con esto.
+        case 0x2E: updateEntityAngle(); break;    // entity rotation.
 
-            case 0x39: printf(INFO "ENTER COMBAT" RESET); break; // enter in combat.
+        case 0x2C: updateEntityPos(); break; // entity teleport less than 8 blocks.
+        case 0x6D: break;                    // entity teleport more than 8 blocks.
 
-            case 0x19: printf(DEBUG "Damage event" RESET); break; // damage event.
-            case 0x22: printf(DEBUG "Hurt (auch)" RESET); break;  // hurt animation. (auch)
-            case 0x5B:                                            // set healt
+        case 0x52: break; // center chunk
 
-                player.healt = {
-                    .hp = packet::decodeFloat(readBuff),
-                    .food = packet::decodeVarInt(readBuff),
-                    .foodSat = packet::decodeFloat(readBuff),
-                };
-                printf(INFO "hp = %f, food = %d, foodSat = %f" RESET, player.healt.hp, player.healt.food, player.healt.foodSat);
+        case 0x54: break; // spawn position.
+        case 0x23: break; // world border.
+        case 0x66: break; // play sound.
+        case 0x27: break; // particle
+        case 0x6E: break; // tick state.
+        case 0x6F: break; // step tick.
+        case 0x26: break; // sound.
 
-                if(player.healt.hp <= 0) { // auto-revive
-                    packet::pushVarInt(sendBuff, 0x00);
-                    packet::pushVarInt(sendBuff, 0x08);
-                    packet::pushVarInt(sendBuff, 0x00);
-                    send();
-                }
+        case 0x20: break; // game event.
+        case 0x0B: break; // dificulty
+        case 0x3C: break; // player update tab.
+        case 0x3B: break; // player disconect
+        case 0x00: break; // delimiter of packet.
 
-                break;
-            case 0x5A: printf(DEBUG "Set xp" RESET); break; // set xp
-
-            case 0x38:
-                printf(INFO "END COMBAT" RESET);
-                break; // end combat.
-
-            /*entities*/
-            case 0x01: spawnEntity(); break; // spawn entity.
-
-            case 0x02: break; // spawn exp orb
-            case 0x03: break; // entity animation.
-            case 0x56:
-                printf(DEBUG "Entity metadata" RESET);
-                printf(DEBUG "EntityID->0x%02X" RESET, packet::decodeVarInt(readBuff));
-                packet::hexDebugPrint(readBuff);
-                break;                          // entity metadata.
-            case 0x59: break;                   // set equipment
-            case 0x71: break;                   // entity set atributes.
-            case 0x40: removeEntities(); break; // remove entity.
-            case 0x1D: break;                   // entity event
-
-            case 0x2D: updateEntityPosAngle(); break; // entity position.
-            case 0x58: break;                         // entity velocity.
-            case 0x46: break;                         // entity angle head. //idk con esto.
-            case 0x2E: updateEntityAngle(); break;    // entity rotation.
-
-            case 0x2C: updateEntityPos(); break; // entity teleport less than 8 blocks.
-            case 0x6D: break;                    // entity teleport more than 8 blocks.
-
-            case 0x52: break; // center chunk
-
-            case 0x54: break; // spawn position.
-            case 0x23: break; // world border.
-            case 0x66: break; // play sound.
-            case 0x27: break; // particle
-            case 0x6E: break; // tick state.
-            case 0x6F: break; // step tick.
-            case 0x26: break; // sound.
-
-            case 0x20: break; // game event.
-            case 0x0B: break; // dificulty
-            case 0x3C: break; // player update tab.
-            case 0x3B: break; // player disconect
-            case 0x00: break; // delimiter of packet.
-
-            default: printf(DEBUG "id = 0x%02X, packetLen = 0x%02X -> %d" RESET, id, packetLen, packetLen); break;
+        default: printf(DEBUG "id = 0x%02X, packetLen = 0x%02X -> %d" RESET, id, packetLen, packetLen); break;
         }
     } else
-        printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET,
+        printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = "
+                     "0x%02X -> %d, readBuff = %zu" RESET,
         status, packetID, id, packetLen, packetLen, readBuff.size());
 }
 
@@ -298,8 +318,7 @@ void Bot::spawnEntity() {
     auto ite = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
     entityList.insert(ite, entity);
 
-    printf(INFO "Entity Spawn ID-> 0x%02X , typeID -> 0x%02X , entityCount -> %zu" RESET, entity.ID, entity.typeID,
-    entityList.size());
+    printf(INFO "Entity Spawn ID-> 0x%02X , typeID -> 0x%02X , entityCount -> %zu" RESET, entity.ID, entity.typeID, entityList.size());
 }
 
 void Bot::removeEntities() {

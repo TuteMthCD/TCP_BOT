@@ -4,6 +4,9 @@
 #include "imgui_impl_opengl3.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
+#include <cstdint>
+#include <cstdio>
+#include <string>
 
 #include "imgui_memory_editor.h"
 
@@ -28,7 +31,7 @@ int main() {
 
     // Configurar contexto de OpenGL
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Habilitar la sincronización vertical
+    // glfwSwapInterval(1); // Habilitar la sincronización vertical
 
     // Inicializar ImGui
     IMGUI_CHECKVERSION();
@@ -42,14 +45,43 @@ int main() {
         // Procesar eventos
         glfwPollEvents();
 
+        std::string title;
+        sprintf(title.data(), "TCP_BOT FPS: %.1f", io.Framerate);
+        glfwSetWindowTitle(window, title.data());
+
         // Iniciar el marco de ImGui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         // Dibujar
-        mem_edit.DrawWindow("Memory Editor", &bot, sizeof(bot));
-        mem_edit.DrawWindow("Memory Editor buff", bot.readBuff.data(), bot.readBuff.size());
+        ImGui::Begin("Bot CreateContext");
+        ImGui::Text("IP:  ");
+        ImGui::SameLine();
+        ImGui::InputText("##ID1", bot.addr.data(), bot.addr.size() + 1);
+
+        ImGui::SameLine();
+
+        int Port = bot.port;
+        ImGui::Text("Port:");
+        ImGui::SameLine();
+        ImGui::InputInt("##ID2", &Port);
+
+        ImGui::Text("Name:");
+        ImGui::SameLine();
+        ImGui::InputText("##ID3", bot.name.data(), bot.name.size() + 1);
+
+        ImGui::Text("uuid:");
+        ImGui::SameLine();
+        ImGui::InputText("##ID4", bot.uuid.data(), bot.uuid.size() + 1);
+
+        if(ImGui::Button("connect")) bot.connect();
+        if(ImGui::Button("disconnect")) bot.disconnect();
+
+        ImGui::End();
+
+        // mem_edit.DrawWindow("Memory Editor", bot.addr.data(), bot.addr.size());
+
 
         // Renderizar
         glClear(GL_COLOR_BUFFER_BIT);
@@ -66,8 +98,6 @@ int main() {
     // Limpiar GLFW
     glfwDestroyWindow(window);
     glfwTerminate();
-
-    bot.th.detach(); // f bot
 
     return 0;
 }
