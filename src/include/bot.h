@@ -21,19 +21,21 @@ class Bot {
         io = &_io;
     };
     void init(std::string addr, unsigned short port, std::string name, std::string uuid, int protocol);
+    void connect(void);
+    void disconnect(void);
 
 
     types::player_t player;
     types::tickTime_t tickTime;
     std::vector<types::entity_t> entityList;
 
-    std::thread th;
-    // buffer necesesario para recibir
-    std::vector<uint8_t> sendBuff;
-    std::vector<uint8_t> readBuff;
-    uint32_t packetLen;
-    uint16_t id;
 
+    // basicas
+    std::string addr;
+    unsigned int port;
+    std::string name;
+    std::string uuid;
+    int protocol;
 
     private:
     // handlers
@@ -57,21 +59,24 @@ class Bot {
     void updateEntityPosAngle();
     void updateEntityAngle();
 
-    // basicas
-    std::string addr;
-    unsigned int port;
-    std::string name;
-    std::string uuid;
-    int protocol;
+    // buffer necesesario para recibir
+    std::vector<uint8_t> sendBuff;
+    std::vector<uint8_t> readBuff;
+    uint32_t packetLen;
+    uint16_t id;
+
     // socket tcp
     boost::asio::ip::tcp::socket socket;
     boost::asio::io_context* io;
+    std::thread th;
     // otras
     enum {
         login,
         config,
         play,
     } status = login;
+
+    bool connected = 0;
 
     uint16_t packetID;
     uint16_t compression_threshold = 256; // 256 is default.
