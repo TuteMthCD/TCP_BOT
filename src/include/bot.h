@@ -23,6 +23,7 @@ class Bot {
     void init(std::string addr, unsigned short port, std::string name, std::string uuid, int protocol);
     void connect(void);
     void disconnect(void);
+    bool getConnectedStatus(void);
 
 
     types::player_t player;

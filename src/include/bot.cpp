@@ -8,6 +8,10 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
     uuid = _uuid;
     protocol = _protocol;
 }
+
+bool Bot::getConnectedStatus(void){
+    return connected;
+}
 void Bot::connect(void) {
     if(!connected) {
         connected = true;

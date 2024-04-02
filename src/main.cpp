@@ -4,9 +4,9 @@
 #include "imgui_impl_opengl3.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
-#include <cstdint>
-#include <cstdio>
-#include <string>
+
+#include <bits/types/struct_rusage.h>
+#include <sys/resource.h>
 
 #include "imgui_memory_editor.h"
 
@@ -45,8 +45,11 @@ int main() {
         // Procesar eventos
         glfwPollEvents();
 
+        rusage usage;
+        getrusage(RUSAGE_SELF, &usage);
+
         std::string title;
-        sprintf(title.data(), "TCP_BOT FPS: %.1f", io.Framerate);
+        sprintf(title.data(), "TCP_BOT FPS: %.1f Mem: %zuMb stime: %.2f", io.Framerate, usage.ru_maxrss / 1024, usage.ru_stime.tv_usec / 1000.0);
         glfwSetWindowTitle(window, title.data());
 
         // Iniciar el marco de ImGui
@@ -55,7 +58,7 @@ int main() {
         ImGui::NewFrame();
 
         // Dibujar
-        ImGui::Begin("Bot CreateContext");
+        ImGui::Begin("Bot CreateContext", (bool*)false, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
         ImGui::Text("IP:  ");
         ImGui::SameLine();
         ImGui::InputText("##ID1", bot.addr.data(), bot.addr.size() + 1);
@@ -76,8 +79,10 @@ int main() {
         ImGui::InputText("##ID4", bot.uuid.data(), bot.uuid.size() + 1);
 
         if(ImGui::Button("connect")) bot.connect();
+        ImGui::SameLine();
         if(ImGui::Button("disconnect")) bot.disconnect();
-
+        ImGui::SameLine();
+        ImGui::Text(bot.getConnectedStatus() ? "Connected" : "Disconnected");
         ImGui::End();
 
         // mem_edit.DrawWindow("Memory Editor", bot.addr.data(), bot.addr.size());
@@ -98,6 +103,8 @@ int main() {
     // Limpiar GLFW
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    bot.disconnect();
 
     return 0;
 }
