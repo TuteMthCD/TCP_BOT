@@ -9,7 +9,7 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
     protocol = _protocol;
 }
 
-bool Bot::getConnectedStatus(void){
+bool Bot::getConnectedStatus(void) {
     return connected;
 }
 void Bot::connect(void) {
@@ -288,12 +288,13 @@ void Bot::playHandler(void) {
 
         default: printf(DEBUG "id = 0x%02X, packetLen = 0x%02X -> %d" RESET, id, packetLen, packetLen); break;
         }
-    } else
-        printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = "
-                     "0x%02X -> %d, readBuff = %zu" RESET,
-        status, packetID, id, packetLen, packetLen, readBuff.size());
+    } else {
+        printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, status, packetID, id, packetLen, packetLen, readBuff.size());
+        // if(packetID == 0x73) debugBuff = readBuff; //data ascii no se que es.
+        // if(packetID == 0x100) debugBuff = readBuff; //menos idea que es esto.
+        // if(packetID == 0x49) debugBuff = readBuff; //oh is a PNG aAAAAaa.
+        }
 }
-
 // auxiliar para usar en lower_bound
 bool compareByID(const types::entity_t& a, const types::entity_t& b) {
     return a.ID < b.ID;

@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <cstdint>
 
 #include "varTypes.h"
 
@@ -30,6 +31,7 @@ class Bot {
     types::tickTime_t tickTime;
     std::vector<types::entity_t> entityList;
 
+    std::vector<uint8_t> debugBuff;
 
     // basicas
     std::string addr;
