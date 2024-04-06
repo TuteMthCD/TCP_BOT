@@ -1,4 +1,5 @@
 #include "bot.h"
+#include <cstdio>
 #include <sys/socket.h>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
@@ -115,10 +116,6 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
     if(packetLen > compression_threshold) { packet::uncompressPacket(readBuff, packetLen); }
 
     packetID = packet::decodeVarInt(readBuff);
-    id = packet::decodeVarInt(readBuff);
-
-    // printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET,
-    // status, packetID, id, packetLen, packetLen, readBuff.size());
 
     switch(status) {
     case login: loginHandler(); break;
@@ -131,6 +128,9 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
 
 void Bot::loginHandler(void) {
+
+    id = packet::decodeVarInt(readBuff);
+
     switch(packetID) {
     case 0x00:
         if(id == 0x02) {
@@ -157,6 +157,8 @@ void Bot::loginHandler(void) {
 
 void Bot::configHandler(void) {
     // printf(DEBUG "configHandler" RESET);
+
+    id = packet::decodeVarInt(readBuff);
 
     if(packetID == 0x00 && id == 0x02) {
 
@@ -191,6 +193,9 @@ void Bot::configHandler(void) {
 
 void Bot::playHandler(void) {
     if(packetID == 0x00) {
+
+        id = packet::decodeVarInt(readBuff);
+
         switch(id) {
         case 0x24: // keep alive;
             packet::pushVarInt(sendBuff, 0x00);
@@ -283,17 +288,25 @@ void Bot::playHandler(void) {
         case 0x20: break; // game event.
         case 0x0B: break; // dificulty
         case 0x3C: break; // player update tab.
-        case 0x3B: break; // player disconect
+        case 0x3B:
+            break; // player disconect
+
+        // case 0x00: printf(INFO "packet delimiter" RESET); break; // delimiter of packet.
         case 0x00: break; // delimiter of packet.
+
+        case 0x0D: printf(INFO "Batch chunks start" RESET); break;
+        case 0x0C: printf(INFO "Batch chunks end" RESET); break;
 
         default: printf(DEBUG "id = 0x%02X, packetLen = 0x%02X -> %d" RESET, id, packetLen, packetLen); break;
         }
     } else {
-        printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, status, packetID, id, packetLen, packetLen, readBuff.size());
+        printf(DEBUG "status = %u, PacketID = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, status, packetID, packetLen, packetLen, readBuff.size());
         // if(packetID == 0x73) debugBuff = readBuff; //data ascii no se que es.
         // if(packetID == 0x100) debugBuff = readBuff; //menos idea que es esto.
         // if(packetID == 0x49) debugBuff = readBuff; //oh is a PNG aAAAAaa.
-        }
+        // if(packetID == 0x70) debugBuff = readBuff; // nose que es mucho text nbt
+        if(packetID == 0x2B77) debugBuff = readBuff; // chunck hardcoded
+    }
 }
 // auxiliar para usar en lower_bound
 bool compareByID(const types::entity_t& a, const types::entity_t& b) {
