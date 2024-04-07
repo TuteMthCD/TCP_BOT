@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <cstdint>
 
 #include "varTypes.h"
 
@@ -24,12 +25,13 @@ class Bot {
     void connect(void);
     void disconnect(void);
     bool getConnectedStatus(void);
-
+    float getHealt(void);
 
     types::player_t player;
     types::tickTime_t tickTime;
     std::vector<types::entity_t> entityList;
 
+    std::vector<uint8_t> debugBuff;
 
     // basicas
     std::string addr;
@@ -42,7 +44,6 @@ class Bot {
     // handlers
     void send(void);
     void read(void);
-
 
     void run(void);
     void handler(const boost::system::error_code& err, std::size_t bytes_transferred);
@@ -60,6 +61,7 @@ class Bot {
     void updateEntityPosAngle();
     void updateEntityAngle();
 
+    void syncPlayerPos();
     // buffer necesesario para recibir
     std::vector<uint8_t> sendBuff;
     std::vector<uint8_t> readBuff;

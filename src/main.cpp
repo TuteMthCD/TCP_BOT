@@ -6,6 +6,8 @@
 #include <GLFW/glfw3.h>
 
 #include <bits/types/struct_rusage.h>
+#include <cstdio>
+#include <string>
 #include <sys/resource.h>
 
 #include "imgui_memory_editor.h"
@@ -18,6 +20,7 @@ int main() {
     boost::asio::io_context Boost_IO;
     Bot bot(Boost_IO);
     bot.init("127.0.0.1", 25565, "tute_BOT", "d42755f0f7be48ec9abc21fc1b1f567d", 765);
+    bot.connect();
 
     // Inicializar GLFW
     if(!glfwInit()) { return -1; }
@@ -85,8 +88,7 @@ int main() {
         ImGui::Text(bot.getConnectedStatus() ? "Connected" : "Disconnected");
         ImGui::End();
 
-        // mem_edit.DrawWindow("Memory Editor", bot.addr.data(), bot.addr.size());
-
+        mem_edit.DrawWindow("Memory Editor", bot.debugBuff.data(), bot.debugBuff.size());
 
         // Renderizar
         glClear(GL_COLOR_BUFFER_BIT);

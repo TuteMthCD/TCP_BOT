@@ -24,6 +24,14 @@ struct player_t {
         uint16_t food;
         float foodSat;
     } healt;
+
+    struct {
+        double x;
+        double y;
+        double z;
+        float yaw;
+        float pitch;
+    } position;
 };
 
 struct tickTime_t {

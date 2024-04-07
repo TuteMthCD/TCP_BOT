@@ -1,4 +1,8 @@
 #include "bot.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <sys/socket.h>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
@@ -9,8 +13,12 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
     protocol = _protocol;
 }
 
-bool Bot::getConnectedStatus(void){
+bool Bot::getConnectedStatus(void) {
     return connected;
+}
+
+float Bot::getHealt(void) {
+    return player.healt.hp;
 }
 void Bot::connect(void) {
     if(!connected) {
@@ -101,6 +109,7 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
     if(_err) {
         printf(ERROR "ERROR EN EL PAQUETE -> %s" RESET, _err.message().c_str());
+        if(connected) disconnect();
         return;
     }
 
@@ -115,10 +124,6 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
     if(packetLen > compression_threshold) { packet::uncompressPacket(readBuff, packetLen); }
 
     packetID = packet::decodeVarInt(readBuff);
-    id = packet::decodeVarInt(readBuff);
-
-    // printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET,
-    // status, packetID, id, packetLen, packetLen, readBuff.size());
 
     switch(status) {
     case login: loginHandler(); break;
@@ -131,6 +136,9 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
 
 void Bot::loginHandler(void) {
+
+    id = packet::decodeVarInt(readBuff);
+
     switch(packetID) {
     case 0x00:
         if(id == 0x02) {
@@ -157,6 +165,8 @@ void Bot::loginHandler(void) {
 
 void Bot::configHandler(void) {
     // printf(DEBUG "configHandler" RESET);
+
+    id = packet::decodeVarInt(readBuff);
 
     if(packetID == 0x00 && id == 0x02) {
 
@@ -191,6 +201,9 @@ void Bot::configHandler(void) {
 
 void Bot::playHandler(void) {
     if(packetID == 0x00) {
+
+        id = packet::decodeVarInt(readBuff);
+
         switch(id) {
         case 0x24: // keep alive;
             packet::pushVarInt(sendBuff, 0x00);
@@ -218,7 +231,7 @@ void Bot::playHandler(void) {
         case 0x73: printf(DEBUG "Update recipes" RESET); break;     // recipes update
         case 0x13: printf(DEBUG "Player inventory" RESET); break;   // inventory container content.
         case 0x6C: printf(DEBUG "Pickup item" RESET); break;        // Pickup item.
-        case 0x3E: printf(DEBUG "Player position" RESET); break;    // player position.
+        case 0x3E: syncPlayerPos(); break;                          // player position.
 
         case 0x39: printf(INFO "ENTER COMBAT" RESET); break; // enter in combat.
 
@@ -250,13 +263,9 @@ void Bot::playHandler(void) {
         /*entities*/
         case 0x01: spawnEntity(); break; // spawn entity.
 
-        case 0x02: break; // spawn exp orb
-        case 0x03: break; // entity animation.
-        case 0x56:
-            printf(DEBUG "Entity metadata" RESET);
-            printf(DEBUG "EntityID->0x%02X" RESET, packet::decodeVarInt(readBuff));
-            packet::hexDebugPrint(readBuff);
-            break;                          // entity metadata.
+        case 0x02: break;                   // spawn exp orb
+        case 0x03: break;                   // entity animation.
+        case 0x56: break;                   // entity metadata.
         case 0x59: break;                   // set equipment
         case 0x71: break;                   // entity set atributes.
         case 0x40: removeEntities(); break; // remove entity.
@@ -283,17 +292,36 @@ void Bot::playHandler(void) {
         case 0x20: break; // game event.
         case 0x0B: break; // dificulty
         case 0x3C: break; // player update tab.
-        case 0x3B: break; // player disconect
+        case 0x3B:
+            break; // player disconect
+
+        // case 0x00: printf(INFO "packet delimiter" RESET); break; // delimiter of packet.
         case 0x00: break; // delimiter of packet.
+
+        case 0x0D: printf(INFO "Batch chunks start" RESET); break;
+        case 0x0C: printf(INFO "Batch chunks end" RESET); break;
 
         default: printf(DEBUG "id = 0x%02X, packetLen = 0x%02X -> %d" RESET, id, packetLen, packetLen); break;
         }
-    } else
-        printf(DEBUG "status = %u, PacketID = 0x%02X, id = 0x%02X, packetLen = "
-                     "0x%02X -> %d, readBuff = %zu" RESET,
-        status, packetID, id, packetLen, packetLen, readBuff.size());
-}
+    } else {
+        switch(packetID) {
+        case 0x73:
+            // debugBuff = readBuff; // data ascii no se que es.
+            break;
+        case 0x100:
+            // debugBuff = readBuff; // menos idea que es esto.
+            break;
+        case 0x49:
+            // debugBuff = readBuff; // oh is a PNG aAAAAaa.
+            break;
+        case 0x70:
+            // debugBuff = readBuff; // nose que es mucho text nbt
+            break;
 
+        default: printf(DEBUG "PacketID = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, packetID, packetLen, packetLen, readBuff.size());
+        }
+    }
+}
 // auxiliar para usar en lower_bound
 bool compareByID(const types::entity_t& a, const types::entity_t& b) {
     return a.ID < b.ID;
@@ -397,4 +425,37 @@ void Bot::updateEntityAngle() {
 
         entiPointer->onGround = (bool)readBuff[0];
     }
+}
+
+void Bot::syncPlayerPos(void) {
+    using namespace packet;
+
+    debugBuff = readBuff;
+
+    struct {
+        double x;
+        double y;
+        double z;
+        float yaw;
+        float pitch;
+    } position = {
+        .x = decodeDouble(readBuff),
+        .y = decodeDouble(readBuff),
+        .z = decodeDouble(readBuff),
+        .yaw = decodeFloat(readBuff),
+        .pitch = decodeFloat(readBuff),
+    };
+
+    uint8_t flags = decodeByte(readBuff);
+    uint16_t tpid = decodeVarInt(readBuff);
+
+    if(flags & 0x01) position.x += player.position.x;
+    if(flags & 0x02) position.y += player.position.y;
+    if(flags & 0x04) position.z += player.position.z;
+    if(flags & 0x08) position.yaw += player.position.yaw;
+    if(flags & 0x10) position.pitch += player.position.pitch;
+
+    memcpy(&player.position, &position, sizeof(position));
+
+    printf(INFO "Player position x: %f y: %f z: %f" RESET, position.x, position.y, position.z);
 }
