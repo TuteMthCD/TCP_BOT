@@ -446,4 +446,8 @@ void Bot::syncPlayerPos(void) {
     if(flags & 0x10) position.pitch += player.position.pitch;
 
     memcpy(&player.position, &position, sizeof(position));
+
+    pushVarInt(sendBuff, 0x00);
+    pushVarInt(sendBuff, tpid);
+    send();
 }
