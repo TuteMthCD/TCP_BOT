@@ -1,5 +1,8 @@
 #include "bot.h"
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <sys/socket.h>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
@@ -12,6 +15,10 @@ void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::
 
 bool Bot::getConnectedStatus(void) {
     return connected;
+}
+
+float Bot::getHealt(void) {
+    return player.healt.hp;
 }
 void Bot::connect(void) {
     if(!connected) {
@@ -411,4 +418,32 @@ void Bot::updateEntityAngle() {
 
         entiPointer->onGround = (bool)readBuff[0];
     }
+}
+
+void Bot::syncPlayerPos(void) {
+    using namespace packet;
+    struct {
+        double x;
+        double y;
+        double z;
+        float yaw;
+        float pitch;
+    } position = {
+        .x = decodeDouble(readBuff),
+        .y = decodeDouble(readBuff),
+        .z = decodeDouble(readBuff),
+        .yaw = decodeFloat(readBuff),
+        .pitch = decodeFloat(readBuff),
+    };
+
+    uint8_t flags = decodeByte(readBuff);
+    uint16_t tpid = decodeVarInt(readBuff);
+
+    if(flags & 0x01) position.x += player.position.x;
+    if(flags & 0x02) position.y += player.position.y;
+    if(flags & 0x04) position.z += player.position.z;
+    if(flags & 0x08) position.yaw += player.position.yaw;
+    if(flags & 0x10) position.pitch += player.position.pitch;
+
+    memcpy(&player.position, &position, sizeof(position));
 }

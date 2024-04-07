@@ -6,6 +6,8 @@
 #include <GLFW/glfw3.h>
 
 #include <bits/types/struct_rusage.h>
+#include <cstdio>
+#include <string>
 #include <sys/resource.h>
 
 #include "imgui_memory_editor.h"
@@ -87,7 +89,6 @@ int main() {
         ImGui::End();
 
         mem_edit.DrawWindow("Memory Editor", bot.debugBuff.data(), bot.debugBuff.size());
-
 
         // Renderizar
         glClear(GL_COLOR_BUFFER_BIT);

@@ -25,7 +25,7 @@ class Bot {
     void connect(void);
     void disconnect(void);
     bool getConnectedStatus(void);
-
+    float getHealt(void);
 
     types::player_t player;
     types::tickTime_t tickTime;
@@ -45,7 +45,6 @@ class Bot {
     void send(void);
     void read(void);
 
-
     void run(void);
     void handler(const boost::system::error_code& err, std::size_t bytes_transferred);
 
@@ -62,6 +61,7 @@ class Bot {
     void updateEntityPosAngle();
     void updateEntityAngle();
 
+    void syncPlayerPos();
     // buffer necesesario para recibir
     std::vector<uint8_t> sendBuff;
     std::vector<uint8_t> readBuff;
