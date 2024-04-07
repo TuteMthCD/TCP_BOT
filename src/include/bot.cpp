@@ -230,7 +230,7 @@ void Bot::playHandler(void) {
         case 0x73: printf(DEBUG "Update recipes" RESET); break;     // recipes update
         case 0x13: printf(DEBUG "Player inventory" RESET); break;   // inventory container content.
         case 0x6C: printf(DEBUG "Pickup item" RESET); break;        // Pickup item.
-        case 0x3E: printf(DEBUG "Player position" RESET); break;    // player position.
+        case 0x3E: syncPlayerPos(); break;                          // player position.
 
         case 0x39: printf(INFO "ENTER COMBAT" RESET); break; // enter in combat.
 
