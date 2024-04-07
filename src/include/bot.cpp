@@ -109,6 +109,7 @@ void Bot::handler(const boost::system::error_code& _err, std::size_t _len) {
 
     if(_err) {
         printf(ERROR "ERROR EN EL PAQUETE -> %s" RESET, _err.message().c_str());
+        if(connected) disconnect();
         return;
     }
 
@@ -262,13 +263,9 @@ void Bot::playHandler(void) {
         /*entities*/
         case 0x01: spawnEntity(); break; // spawn entity.
 
-        case 0x02: break; // spawn exp orb
-        case 0x03: break; // entity animation.
-        case 0x56:
-            printf(DEBUG "Entity metadata" RESET);
-            printf(DEBUG "EntityID->0x%02X" RESET, packet::decodeVarInt(readBuff));
-            packet::hexDebugPrint(readBuff);
-            break;                          // entity metadata.
+        case 0x02: break;                   // spawn exp orb
+        case 0x03: break;                   // entity animation.
+        case 0x56: break;                   // entity metadata.
         case 0x59: break;                   // set equipment
         case 0x71: break;                   // entity set atributes.
         case 0x40: removeEntities(); break; // remove entity.
@@ -307,12 +304,22 @@ void Bot::playHandler(void) {
         default: printf(DEBUG "id = 0x%02X, packetLen = 0x%02X -> %d" RESET, id, packetLen, packetLen); break;
         }
     } else {
-        printf(DEBUG "status = %u, PacketID = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, status, packetID, packetLen, packetLen, readBuff.size());
-        // if(packetID == 0x73) debugBuff = readBuff; //data ascii no se que es.
-        // if(packetID == 0x100) debugBuff = readBuff; //menos idea que es esto.
-        // if(packetID == 0x49) debugBuff = readBuff; //oh is a PNG aAAAAaa.
-        // if(packetID == 0x70) debugBuff = readBuff; // nose que es mucho text nbt
-        if(packetID == 0x2B77) debugBuff = readBuff; // chunck hardcoded
+        switch(packetID) {
+        case 0x73:
+            // debugBuff = readBuff; // data ascii no se que es.
+            break;
+        case 0x100:
+            // debugBuff = readBuff; // menos idea que es esto.
+            break;
+        case 0x49:
+            // debugBuff = readBuff; // oh is a PNG aAAAAaa.
+            break;
+        case 0x70:
+            // debugBuff = readBuff; // nose que es mucho text nbt
+            break;
+
+        default: printf(DEBUG "PacketID = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, packetID, packetLen, packetLen, readBuff.size());
+        }
     }
 }
 // auxiliar para usar en lower_bound
@@ -422,6 +429,9 @@ void Bot::updateEntityAngle() {
 
 void Bot::syncPlayerPos(void) {
     using namespace packet;
+
+    debugBuff = readBuff;
+
     struct {
         double x;
         double y;
@@ -447,7 +457,5 @@ void Bot::syncPlayerPos(void) {
 
     memcpy(&player.position, &position, sizeof(position));
 
-    pushVarInt(sendBuff, 0x00);
-    pushVarInt(sendBuff, tpid);
-    send();
+    printf(INFO "Player position x: %f y: %f z: %f" RESET, position.x, position.y, position.z);
 }
