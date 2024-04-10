@@ -31,7 +31,10 @@ class Bot {
     types::tickTime_t tickTime;
     std::vector<types::entity_t> entityList;
 
-    std::vector<uint8_t> debugBuff;
+    struct {
+        uint16_t x_center;
+        uint16_t z_center;
+    } chunks;
 
     // basicas
     std::string addr;
@@ -54,6 +57,8 @@ class Bot {
 
     void loginPacket(void);
     void decodePacketLength(void);
+
+    void setCenterChunk();
 
     void spawnEntity();
     void removeEntities();

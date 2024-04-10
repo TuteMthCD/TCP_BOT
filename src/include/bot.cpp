@@ -1,9 +1,4 @@
 #include "bot.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <sys/socket.h>
 
 void Bot::init(std::string _addr, unsigned short _port, std::string _name, std::string _uuid, int _protocol) {
     addr = _addr;
@@ -279,7 +274,7 @@ void Bot::playHandler(void) {
         case 0x2C: updateEntityPos(); break; // entity teleport less than 8 blocks.
         case 0x6D: teleportEntity(); break;  // entity teleport more than 8 blocks.
 
-        case 0x52: break; // center chunk
+        case 0x52: setCenterChunk(); break; // center chunk
 
         case 0x54: break; // spawn position.
         case 0x23: break; // world border.
@@ -450,8 +445,6 @@ void Bot::updateEntityAngle() {
 void Bot::syncPlayerPos(void) {
     using namespace packet;
 
-    debugBuff = readBuff;
-
     struct {
         double x;
         double y;
@@ -478,4 +471,10 @@ void Bot::syncPlayerPos(void) {
     memcpy(&player.position, &position, sizeof(position));
 
     printf(INFO "Player position x: %f y: %f z: %f" RESET, position.x, position.y, position.z);
+}
+
+void Bot::setCenterChunk() {
+    using namespace packet;
+    chunks.x_center = decodeVarInt(readBuff);
+    chunks.z_center = decodeVarInt(readBuff);
 }
