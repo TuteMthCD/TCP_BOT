@@ -58,6 +58,7 @@ class Bot {
     void spawnEntity();
     void removeEntities();
     void updateEntityPos();
+    void teleportEntity();
     void updateEntityPosAngle();
     void updateEntityAngle();
 

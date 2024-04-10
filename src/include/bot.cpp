@@ -277,7 +277,7 @@ void Bot::playHandler(void) {
         case 0x2E: updateEntityAngle(); break;    // entity rotation.
 
         case 0x2C: updateEntityPos(); break; // entity teleport less than 8 blocks.
-        case 0x6D: break;                    // entity teleport more than 8 blocks.
+        case 0x6D: teleportEntity(); break;  // entity teleport more than 8 blocks.
 
         case 0x52: break; // center chunk
 
@@ -306,16 +306,16 @@ void Bot::playHandler(void) {
     } else {
         switch(packetID) {
         case 0x73:
-            // debugBuff = readBuff; // data ascii no se que es.
+            // debugBuff = readBuff; // data ascii no se que es. //recetas maybe?
             break;
         case 0x100:
             // debugBuff = readBuff; // menos idea que es esto.
             break;
         case 0x49:
-            // debugBuff = readBuff; // oh is a PNG aAAAAaa.
+            // debugBuff = readBuff; // oh is a PNG aAAAAaa. //icono probablemente
             break;
         case 0x70:
-            // debugBuff = readBuff; // nose que es mucho text nbt
+            // debugBuff = readBuff; // nose que es mucho text nbt //avances maybe???
             break;
 
         default: printf(DEBUG "PacketID = 0x%02X, packetLen = 0x%02X -> %d, readBuff = %zu" RESET, packetID, packetLen, packetLen, readBuff.size());
@@ -381,6 +381,26 @@ void Bot::updateEntityPos() {
         entiPointer->x += (double)decodeShort(readBuff) / (128 * 32);
         entiPointer->y += (double)decodeShort(readBuff) / (128 * 32);
         entiPointer->z += (double)decodeShort(readBuff) / (128 * 32);
+
+        entiPointer->onGround = (bool)readBuff[0];
+    }
+}
+void Bot::teleportEntity() {
+    using namespace packet;
+
+    types::entity_t entity = {
+        .ID = decodeVarInt(readBuff),
+    };
+
+    auto entiPointer = std::lower_bound(entityList.begin(), entityList.end(), entity, compareByID);
+
+    if(entiPointer->ID == entity.ID) {
+        entiPointer->x = (double)decodeShort(readBuff);
+        entiPointer->y = (double)decodeShort(readBuff);
+        entiPointer->z = (double)decodeShort(readBuff);
+
+        entiPointer->yaw = decodeByte(readBuff);
+        entiPointer->pitch = decodeByte(readBuff);
 
         entiPointer->onGround = (bool)readBuff[0];
     }
